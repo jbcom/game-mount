@@ -19,14 +19,19 @@
 
 import type { CanvasProps, RootState } from '@react-three/fiber';
 import { cleanup, render } from '@testing-library/react';
+import { useEffect } from 'react';
 import { ACESFilmicToneMapping, SRGBColorSpace } from 'three';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const recordedCanvasProps: CanvasProps[] = [];
+let mountCount = 0;
 
 vi.mock('@react-three/fiber', () => ({
   Canvas: (props: CanvasProps) => {
     recordedCanvasProps.push(props);
+    useEffect(() => {
+      mountCount += 1;
+    }, []);
     return <canvas data-testid="mock-canvas" />;
   },
 }));
@@ -38,6 +43,7 @@ const { CABINET_CANVAS_HOST_CLASS } = await import('../src/hostStyle.js');
 afterEach(() => {
   cleanup();
   recordedCanvasProps.length = 0;
+  mountCount = 0;
   vi.restoreAllMocks();
 });
 
@@ -143,6 +149,29 @@ describe('CabinetCanvas', () => {
 
     canvas.dispatchEvent(new Event('webglcontextrestored'));
     expect(onRestored).toHaveBeenCalledWith(canvas);
+  });
+
+  it('context restore forces a real remount, not just a callback — preventDefault alone leaves the GL context empty', async () => {
+    render(
+      <CabinetCanvas active>
+        <group />
+      </CabinetCanvas>,
+    );
+    const canvas = createdWithCanvas();
+    expect(mountCount).toBe(1);
+
+    canvas.dispatchEvent(new Event('webglcontextlost', { cancelable: true }));
+    canvas.dispatchEvent(new Event('webglcontextrestored'));
+
+    // The remount's state update happens inside a native DOM event
+    // listener, outside React's synchronous act() batching — flush a tick
+    // so the resulting re-render (with a bumped key) actually commits.
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
+    // A remount tears down and recreates the mock Canvas instance, so the
+    // effect-based mount probe fires again — proving the fix is a real
+    // remount, not merely invoking onContextRestored.
+    expect(mountCount).toBe(2);
   });
 
   it('context loss without handlers: preventDefaults and warns', () => {

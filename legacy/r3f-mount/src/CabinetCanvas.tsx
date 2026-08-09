@@ -1,7 +1,7 @@
 import type { CanvasProps, RootState } from '@react-three/fiber';
 import { Canvas } from '@react-three/fiber';
 import type { HTMLAttributes, ReactNode } from 'react';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ACESFilmicToneMapping, SRGBColorSpace } from 'three';
 import { CABINET_CANVAS_HOST_CLASS, cabinetCanvasHostStyle } from './hostStyle.js';
 
@@ -65,9 +65,22 @@ export interface CabinetCanvasProps extends Omit<CanvasProps, 'dpr' | 'gl'> {
  * or a sized grid area). See the README — `min-height: 0` is the #1 footgun.
  *
  * WebGL context-loss handling is baked in (ported from blobolines, the only
- * fleet member that had it): mobile GPUs drop the context on backgrounding /
- * memory pressure; without `preventDefault` on `webglcontextlost` the canvas
- * goes permanently blank instead of recovering on `webglcontextrestored`.
+ * fleet member that had it): both desktop and mobile GPUs drop the context
+ * under memory pressure or backgrounding; without `preventDefault` on
+ * `webglcontextlost` the browser discards it permanently instead of firing
+ * `webglcontextrestored`. `preventDefault` alone is NOT sufficient recovery,
+ * though — three.js/r3f keep no mechanism to repopulate GPU-side textures,
+ * geometries, and compiled shader programs into a restored-but-empty
+ * context (confirmed against the R3F docs: the officially recommended
+ * pattern for a WebGL crash is remounting the `<Canvas>`, not an in-place
+ * repaint). So on `webglcontextrestored`, this component forces exactly
+ * that: it bumps an internal remount key, which tears down and recreates
+ * the `<Canvas>` (and therefore its GL context) fresh, while React's
+ * existing scene-graph state (props/children) repopulates it immediately.
+ * Without this, a context loss produces a permanently blank canvas with no
+ * visible error — confirmed live: a long-idle tab lost its context and the
+ * canvas stayed a blank white square indefinitely with only a console
+ * warning, no user-visible signal or recovery.
  */
 export function CabinetCanvas({
   quality = { maxDpr: 2, antialias: true },
@@ -89,6 +102,11 @@ export function CabinetCanvas({
     lostRef.current = onContextLost;
     restoredRef.current = onContextRestored;
   });
+
+  // Bumping this key remounts <Canvas>, which tears down and recreates the
+  // WebGL context from scratch — see the class doc comment for why this is
+  // necessary (preventDefault alone does not repopulate GPU state).
+  const [remountKey, setRemountKey] = useState(0);
 
   if (!active) return null;
 
@@ -117,6 +135,9 @@ export function CabinetCanvas({
         } else {
           console.warn('[r3f-mount] WebGL context restored.');
         }
+        // Force a full remount so the fresh context gets a real render
+        // pass — see the class doc comment.
+        setRemountKey((key) => key + 1);
       },
       false,
     );
@@ -133,6 +154,7 @@ export function CabinetCanvas({
       {...hostRest}
     >
       <Canvas
+        key={remountKey}
         dpr={[1, quality.maxDpr]}
         gl={{
           antialias: quality.antialias,
