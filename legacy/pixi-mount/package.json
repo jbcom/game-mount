@@ -1,6 +1,6 @@
 {
   "name": "@arcade-cabinet/pixi-mount",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Pixi 8 Application mount/unmount lifecycle — fresh-canvas StrictMode safety, single onResize-driven ResizeObserver, DPR cap, reduced-motion gate — extracted from on-the-ropes.",
   "type": "module",
   "license": "MIT",
@@ -15,6 +15,11 @@
       "types": "./dist/types/react.d.ts",
       "import": "./dist/esm/react.js",
       "require": "./dist/cjs/react.cjs"
+    },
+    "./pixi-react": {
+      "types": "./dist/types/pixi-react.d.ts",
+      "import": "./dist/esm/pixi-react.js",
+      "require": "./dist/cjs/pixi-react.cjs"
     },
     "./package.json": "./package.json"
   },
@@ -34,15 +39,20 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "peerDependencies": {
+    "@pixi/react": "^8.0.5",
     "pixi.js": "^8.0.0",
     "react": ">=18.0.0"
   },
   "peerDependenciesMeta": {
+    "@pixi/react": {
+      "optional": true
+    },
     "react": {
       "optional": true
     }
   },
   "devDependencies": {
+    "@pixi/react": "^8.0.5",
     "@types/node": "^22.0.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",

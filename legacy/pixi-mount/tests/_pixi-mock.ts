@@ -11,10 +11,12 @@
  */
 
 export interface MockAppRecord {
+  canvas: HTMLCanvasElement | null;
   destroyed: boolean;
   initOptions: Record<string, unknown> | null;
   resizeCalls: Array<[number, number]>;
   resizeListenerCount: number;
+  resizeTo: HTMLElement | Window | null;
   width: number;
   height: number;
 }
@@ -36,6 +38,9 @@ export function pixiMock(): Record<string, unknown> {
   }
 
   class Application {
+    public canvas: HTMLCanvasElement | null = null;
+    public resizeTo: HTMLElement | Window | null = null;
+    public screen = { width: 0, height: 0 };
     public stage = new Container();
     public renderer: {
       resize(w: number, h: number): void;
@@ -43,10 +48,12 @@ export function pixiMock(): Record<string, unknown> {
       off(event: string, fn: (w: number, h: number) => void): void;
     };
     private _record: MockAppRecord = {
+      canvas: null,
       destroyed: false,
       initOptions: null,
       resizeCalls: [],
       resizeListenerCount: 0,
+      resizeTo: null,
       width: 0,
       height: 0,
     };
@@ -60,6 +67,8 @@ export function pixiMock(): Record<string, unknown> {
           record.resizeCalls.push([w, h]);
           record.width = w;
           record.height = h;
+          this.screen.width = w;
+          this.screen.height = h;
           // Pixi 8: AbstractRenderer emits 'resize' after resizing.
           for (const fn of [...listeners]) fn(w, h);
         },
@@ -80,8 +89,25 @@ export function pixiMock(): Record<string, unknown> {
 
     async init(opts: Record<string, unknown>): Promise<void> {
       this._record.initOptions = opts;
+      this.canvas = (opts.canvas as HTMLCanvasElement | undefined) ?? null;
+      this._record.canvas = this.canvas;
       this._record.width = (opts.width as number | undefined) ?? 800;
       this._record.height = (opts.height as number | undefined) ?? 450;
+      this.screen.width = this._record.width;
+      this.screen.height = this._record.height;
+    }
+
+    resize(): void {
+      const target = this.resizeTo;
+      if (target === null) return;
+      const width = target instanceof Window ? target.innerWidth : target.clientWidth;
+      const height = target instanceof Window ? target.innerHeight : target.clientHeight;
+      this.renderer.resize(width, height);
+    }
+
+    setResizeTarget(target: HTMLElement | Window): void {
+      this.resizeTo = target;
+      this._record.resizeTo = target;
     }
 
     destroy(_a?: unknown, _b?: unknown): void {
