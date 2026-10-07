@@ -4,3 +4,6 @@ coverage/
 *.tgz
 .DS_Store
 docs/dist/
+# Local agent runtime state; never part of the package.
+.agent-state/
+.claude/
