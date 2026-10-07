@@ -12,7 +12,7 @@
  */
 
 import type { CanvasProps, RootState } from "@react-three/fiber";
-import { cleanup, render } from "@testing-library/react";
+import { act, cleanup, render } from "@testing-library/react";
 import { useEffect } from "react";
 import { ACESFilmicToneMapping, SRGBColorSpace } from "three";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -180,13 +180,12 @@ describe("GameCanvas", () => {
     const canvas = createdWithCanvas();
     expect(mountCount).toBe(1);
 
-    canvas.dispatchEvent(new Event("webglcontextlost", { cancelable: true }));
-    canvas.dispatchEvent(new Event("webglcontextrestored"));
-
-    // The remount's state update happens inside a native DOM event
-    // listener, outside React's synchronous act() batching — flush a tick
-    // so the resulting re-render (with a bumped key) actually commits.
-    await new Promise((resolve) => setTimeout(resolve, 50));
+    // Native DOM events run outside render's act() wrapper. Flush the React update
+    // explicitly so this assertion measures the remount rather than scheduler timing.
+    await act(async () => {
+      canvas.dispatchEvent(new Event("webglcontextlost", { cancelable: true }));
+      canvas.dispatchEvent(new Event("webglcontextrestored"));
+    });
 
     // A remount tears down and recreates the mock Canvas instance, so the
     // effect-based mount probe fires again — proving the fix is a real

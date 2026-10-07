@@ -29,7 +29,7 @@
     "mobile"
   ],
   "engines": {
-    "node": ">=24"
+    "node": ">=22"
   },
   "packageManager": "pnpm@12.9.1",
   "publishConfig": {
