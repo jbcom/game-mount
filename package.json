@@ -1,6 +1,6 @@
 {
   "name": "game-mount",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Mount a game renderer into a parent-sized box: one DPR, quality and reduced-motion policy, with adapters for PixiJS, @pixi/react, react-three-fiber and Babylon.js (Reactylon). Each adapter needs only its own renderer installed.",
   "type": "module",
   "license": "MIT",
