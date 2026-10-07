@@ -32,6 +32,10 @@ Peers: `@babylonjs/core` ^7, ^8 or ^9 (tested against 9), `@babylonjs/havok` ^1,
 | `isMobileDevice()` | The user-agent sniff the two above share |
 | `getSafeAreaInsets()` / `resetSafeAreaCache()` | `env(safe-area-inset-*)` resolved to pixel numbers through a hidden probe, for HUD offsets that CSS cannot reach because Babylon GUI draws on the canvas. Cached until reset; zeros on the server and where there is no notch |
 
+The package does not bundle the Havok WASM binary. `useHavokPhysics` fetches `<wasmBaseUrl>HavokPhysics.wasm`,
+so the game has to serve it (for a Vite app, copy it from `@babylonjs/havok` into `public/havok/`) or pass
+the base URL it is served from.
+
 ```tsx
 import { Engine } from 'reactylon/web';
 import { Scene } from 'reactylon';
