@@ -2,7 +2,8 @@
 
 ## Supported versions
 
-Security fixes target the latest released version. Version 0.1.0 is currently a release candidate.
+Security fixes target the latest released version. Install the latest version from npm;
+see [GitHub releases](https://github.com/jbcom/game-mount/releases) for release history.
 
 ## Reporting a vulnerability
 
