@@ -6,9 +6,9 @@
  * option mapping, resize ordering and StrictMode cleanup deterministically.
  */
 
-import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { __mockState, FakeResizeObserver, pixiMock } from './_pixi-mock';
 
 vi.mock('pixi.js', () => pixiMock());
@@ -60,10 +60,7 @@ vi.mock('@pixi/react', async () => {
 
 import { act, type ReactElement, StrictMode } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import {
-  PixiReactMount,
-  type PixiReactMountHandle,
-} from '../src/pixi-react';
+import { PixiReactMount, type PixiReactMountHandle } from '../src/pixi-react';
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -173,7 +170,8 @@ describe('PixiReactMount', () => {
   it('manual mode dedupes resize and invokes reflow after renderer resize', async () => {
     const host = sizedHost(500, 300);
     let handle: PixiReactMountHandle | null = null;
-    const callbackSnapshots: Array<{ size: [number, number]; lastRendererCall: [number, number] }> = [];
+    const callbackSnapshots: Array<{ size: [number, number]; lastRendererCall: [number, number] }> =
+      [];
     const root = await render(
       <PixiReactMount
         pixelSnap={true}
@@ -202,9 +200,7 @@ describe('PixiReactMount', () => {
     (handle as PixiReactMountHandle | null)?.resize(333.9, 222.9);
     (handle as PixiReactMountHandle | null)?.resize(333, 222);
     expect(live?.resizeCalls).toEqual([[333, 222]]);
-    expect(callbackSnapshots).toEqual([
-      { size: [333, 222], lastRendererCall: [333, 222] },
-    ]);
+    expect(callbackSnapshots).toEqual([{ size: [333, 222], lastRendererCall: [333, 222] }]);
 
     await act(async () => root.unmount());
   });

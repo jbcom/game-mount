@@ -11,10 +11,7 @@
  * single resize-pipeline contracts around that one upstream-owned instance.
  */
 
-import {
-  Application as PixiReactApplication,
-  type ApplicationRef,
-} from '@pixi/react';
+import { type ApplicationRef, Application as PixiReactApplication } from '@pixi/react';
 import type { Application } from 'pixi.js';
 import {
   type ComponentProps,

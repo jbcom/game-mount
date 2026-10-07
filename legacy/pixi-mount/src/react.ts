@@ -10,7 +10,7 @@
  */
 
 import { type RefObject, useEffect, useRef, useState } from 'react';
-import { mountPixi, type MountOptions, type PixiMountHandle } from './mount.js';
+import { type MountOptions, mountPixi, type PixiMountHandle } from './mount.js';
 
 /**
  * Mount a Pixi Application onto the ref'd element.

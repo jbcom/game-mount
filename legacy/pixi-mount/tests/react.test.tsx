@@ -14,8 +14,8 @@ vi.mock('pixi.js', () => pixiMock());
 
 import { act, type ReactElement, StrictMode, useRef } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import { usePixiMount } from '../src/react';
 import type { PixiMountHandle } from '../src/index';
+import { usePixiMount } from '../src/react';
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 

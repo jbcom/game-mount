@@ -1,9 +1,9 @@
 # @arcade-cabinet/pixi-mount
 
-Pixi 8 Application mount/unmount lifecycle, extracted from
+Pixi 8 Application mount/unmount lifecycle. It began in
 [on-the-ropes](https://github.com/jbcom/on-the-ropes)'
 `src/rendering/ring/RingRenderer.ts` + `show-mode-controller.ts` — the
-tournament-winning `pixi-mount` pattern across the arcade-cabinet fleet —
+`pixi-mount` pattern the arcade-cabinet fleet standardised on —
 with the runner-ups' hardest-won lessons folded in:
 
 - **Fresh canvas per Application (default)** — illinois-jim's StrictMode
@@ -39,6 +39,14 @@ pnpm add @arcade-cabinet/pixi-mount pixi.js
 ```
 
 `pixi.js` (^8) is a peer dependency — bring your own pinned version.
+
+The package is served by the `arcade-cabinet` Gitea registry on a private network:
+
+```ini
+@arcade-cabinet:registry=https://registry.npmjs.org/
+```
+
+Registry reads are anonymous. Publishing remains credentialed.
 
 ## Usage
 
@@ -140,15 +148,37 @@ to rebuild deliberately. `onResize` and `onReady` always use their latest
 callbacks. The canvas defaults to filling its parent, which is also the default
 resize target. In `manual` mode call `handle.resize(width, height)`.
 
-## Test
+## Development
+
+Built on the fleet toolchain, Node 26 (`.node-version`) and pnpm 12 (`packageManager`, through
+Corepack); the package itself runs on Node 24 and later.
 
 ```sh
-pnpm --filter @arcade-cabinet/pixi-mount test
-pnpm test:pixi-mount:browser
+corepack enable
+pnpm install --frozen-lockfile
+pnpm exec playwright install chromium   # the StrictMode gate runs in real Chromium
+pnpm verify   # Biome, tsc, jsdom and Chromium tests, the ESM/CJS/types build, a packed-tarball consumer smoke
 ```
 
-Unit tests use jsdom plus a Pixi mock mirroring the exact mount surface,
-including Pixi 8's renderer `resize` event. The repository's headed Playwright
-gate mounts the real `@pixi/react` adapter under React StrictMode, verifies one
-live canvas/Application and a healthy WebGL context, then unmounts/remounts and
-proves the replacement canvas is fresh.
+Unit tests (`pnpm test:jsdom`) use jsdom plus a Pixi mock mirroring the exact mount surface,
+including Pixi 8's renderer `resize` event. The browser gate (`pnpm test:browser`, Vitest browser
+mode in Chromium) mounts the real `@pixi/react` adapter under React StrictMode, verifies one live
+canvas/Application and a healthy WebGL context, resizes through the renderer-before-reflow
+pipeline, then unmounts/remounts and proves the replacement canvas is fresh. It asserts a live
+context, not a GPU: CI runners fall back to software WebGL.
+
+`pnpm smoke:consumer` packs the tarball, installs it anonymously into a scratch project next to
+the `pixi.js`, React and `@pixi/react` the package is tested against, and loads `.`, `./react`
+and `./pixi-react` through `require` and `import`. `./pixi-react` is only resolved under Node ESM,
+because `@pixi/react` 8.0.5 imports `react-reconciler/constants` without an extension; it is meant
+for a bundler.
+
+## Release
+
+Conventional Commits drive release-please; merging its release pull request tags `v<version>`.
+The publish job in `.gitea/workflows/release.yml` reconciles on every `main` run: when the manifest
+version is tagged but absent from the registry, it verifies at the tag, packs twice and requires byte
+identity, publishes those bytes with the organisation secret `NPM_TOKEN` from a
+throwaway npmrc, then reruns the consumer smoke against the published version with
+`PIXI_MOUNT_CONSUMER_SOURCE=@arcade-cabinet/pixi-mount@<version>` and an anonymous npm config.
+Never edit the `version` field by hand. Why the repository is shaped this way: `docs/decisions.md`.
