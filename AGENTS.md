@@ -4,7 +4,7 @@ Read `docs/decisions.md` and `docs/ARCHITECTURE.md` before changing an adapter. 
 
 ## Verification
 
-- Use Node 26 and pinned pnpm 12. Install with `pnpm install --frozen-lockfile`.
+- Support Node.js 22, 24 and 26 with pinned pnpm 12; development defaults to Node 26. Install with `pnpm install --frozen-lockfile`.
 - Run `pnpm verify` and `pnpm docs:build` for release readiness.
 - Keep hooks enabled and use Conventional Commits.
 - Preserve 100% source coverage. Never skip or weaken tests.

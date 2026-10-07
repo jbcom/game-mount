@@ -17,6 +17,7 @@ import { describe, expect, it } from "vitest";
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const manifest = JSON.parse(readFileSync(path.join(root, "package.json"), "utf8")) as {
+  engines: { node: string };
   exports: Record<string, unknown>;
   peerDependencies: Record<string, string>;
   peerDependenciesMeta: Record<string, { optional?: boolean }>;
@@ -119,6 +120,17 @@ describe("peer isolation", () => {
 });
 
 describe("CI", () => {
+  it("supports and verifies every maintained Node line without patch pins", () => {
+    expect(manifest.engines.node).toBe(">=22");
+    const text = readFileSync(path.join(root, ".github/workflows/ci.yml"), "utf8");
+    expect([...text.matchAll(/^ {12}node: "([^"]+)"$/gm)].map((match) => match[1])).toEqual([
+      "22",
+      "24",
+      "26",
+    ]);
+    expect(readFileSync(path.join(root, ".nvmrc"), "utf8").trim()).toBe("26");
+  });
+
   it("installs Chromium before every pnpm verify", () => {
     for (const workflow of ["ci.yml", "cd.yml"]) {
       const text = readFileSync(path.join(root, ".github/workflows", workflow), "utf8");

@@ -58,7 +58,7 @@ All peers are optional at the package level. Each selected adapter still require
 | `game-mount/babylon/havok` | `useHavokPhysics` | React 18 or 19, Babylon core 7–9, Havok 1 |
 | `game-mount/styles.css` | `.game-canvas-host` stylesheet | None |
 
-Use mutually compatible renderer and React versions: the peer ranges above describe this package, and upstream peers can impose narrower requirements. Mounting requires a browser; importing modules and using the pure core works in Node. Development uses Node 26 and pnpm 12; the Node engine floor is 24.
+Use mutually compatible renderer and React versions: the peer ranges above describe this package, and upstream peers can impose narrower requirements. Mounting requires a browser; importing modules and using the pure core works in Node. Node.js 22, 24 and 26 are supported (`engines.node: >=22`). Development defaults to Node 26 and pnpm 12; CI verifies every supported line.
 
 The default quality is `high` (DPR cap 2, antialiasing enabled). `medium` caps at 1.5; `low` caps at 1 and disables antialiasing. Babylon detects mobile devices and defaults to `low` there. Reduced-motion detection supplies a preference; your scene decides how to apply it.
 

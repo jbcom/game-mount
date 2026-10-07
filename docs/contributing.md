@@ -3,7 +3,8 @@ title: Contributing
 description: Development setup, invariants and verification.
 ---
 
-Use Node 26 and the pinned pnpm 12 version. Keep Git hooks enabled.
+Use Node.js 22, 24 or 26 and the pinned pnpm 12 version. Development defaults to Node 26;
+CI verifies all three lines. Keep Git hooks enabled.
 
 ```sh
 pnpm install --frozen-lockfile

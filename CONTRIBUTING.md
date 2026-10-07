@@ -4,7 +4,7 @@ Discuss API or lifecycle changes in a [GitHub issue](https://github.com/jbcom/ga
 
 ## Development
 
-Use Node 26 and the pnpm version pinned in `package.json`.
+Use Node.js 22, 24 or 26 and the pnpm version pinned in `package.json`. Development defaults to Node 26; CI verifies all three lines.
 
 ```sh
 pnpm install --frozen-lockfile
