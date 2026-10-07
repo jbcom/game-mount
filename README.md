@@ -10,7 +10,7 @@ The core has no dependencies. Renderer adapters live at separate entry points; i
 npm install game-mount pixi.js
 ```
 
-Version 0.1.0 is the initial release candidate. Registry installation becomes available after the first release.
+Install the published package from npm. Release notes are available in the [changelog](./CHANGELOG.md).
 
 ## Quick start
 

@@ -3,7 +3,7 @@ title: Getting started
 description: Install one adapter and give its host a resolved height.
 ---
 
-Version 0.1.0 is an unreleased candidate. The commands below apply after the initial registry release.
+Install the published package from npm with the peers needed by your adapter.
 
 ## Pick an adapter
 
