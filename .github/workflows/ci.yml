@@ -47,6 +47,11 @@ jobs:
           git diff --exit-code pnpm-lock.yaml
       # The @pixi/react gate runs on a real WebGL context in Chromium; a
       # runner without it must fail the gate, not skip it.
+      - name: Use HTTPS Ubuntu package mirror
+        run: |
+          if test -f /etc/apt/apt-mirrors.txt; then
+            printf '%s\n' 'https://archive.ubuntu.com/ubuntu/' | sudo tee /etc/apt/apt-mirrors.txt > /dev/null
+          fi
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm verify
 
@@ -81,6 +86,11 @@ jobs:
           node-version: "lts/*"
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: Use HTTPS Ubuntu package mirror
+        run: |
+          if test -f /etc/apt/apt-mirrors.txt; then
+            printf '%s\n' 'https://archive.ubuntu.com/ubuntu/' | sudo tee /etc/apt/apt-mirrors.txt > /dev/null
+          fi
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm coverage
       - name: SonarCloud scan
