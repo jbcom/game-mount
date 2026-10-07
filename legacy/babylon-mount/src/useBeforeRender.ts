@@ -1,6 +1,6 @@
-import { useEffect, useLayoutEffect, useRef, type DependencyList } from 'react';
-import { useScene } from 'reactylon';
 import type { Scene } from '@babylonjs/core/scene';
+import { type DependencyList, useEffect, useLayoutEffect, useRef } from 'react';
+import { useScene } from 'reactylon';
 
 /**
  * Subscribes to the active Babylon scene's onBeforeRenderObservable
@@ -39,6 +39,7 @@ export function useBeforeRender(
     return () => {
       if (observer) scene.onBeforeRenderObservable.remove(observer);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // The caller's `deps` re-subscribe the observer alongside the scene; the callback itself is
+    // read through the ref, so it is deliberately not a dependency.
   }, [scene, ...deps]);
 }

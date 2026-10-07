@@ -5,8 +5,8 @@
 // "module", matching the package.json exports map.
 import { execFileSync } from 'node:child_process';
 import { readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const pkgRoot = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const tscBin = path.join(pkgRoot, 'node_modules', '.bin', 'tsc');

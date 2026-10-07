@@ -1,7 +1,7 @@
-import { describe, expect, it } from 'vitest';
 import { NullEngine } from '@babylonjs/core/Engines/nullEngine.js';
-import { Scene } from '@babylonjs/core/scene.js';
 import { TransformNode } from '@babylonjs/core/Meshes/transformNode.js';
+import { Scene } from '@babylonjs/core/scene.js';
+import { describe, expect, it } from 'vitest';
 
 // SceneRoot's promise: the Babylon Scene + Engine remain mounted across key
 // changes; only per-key mesh subtrees mount/unmount. This test validates the

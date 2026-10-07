@@ -1,7 +1,7 @@
-import { describe, expect, it } from 'vitest';
 import { NullEngine } from '@babylonjs/core/Engines/nullEngine.js';
-import { Scene } from '@babylonjs/core/scene.js';
 import { TransformNode } from '@babylonjs/core/Meshes/transformNode.js';
+import { Scene } from '@babylonjs/core/scene.js';
+import { describe, expect, it } from 'vitest';
 
 // SceneRoot mount/unmount semantics: this suite asserts the pure-Babylon
 // TransformNode chain that SceneRoot relies on. The React wrapper itself is

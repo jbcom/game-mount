@@ -1,7 +1,7 @@
-import { useEffect, useState, type ReactNode } from 'react';
-import { useScene } from 'reactylon';
 import type { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import { TransformNode as BJSTransformNode } from '@babylonjs/core/Meshes/transformNode.js';
+import { type ReactNode, useEffect, useState } from 'react';
+import { useScene } from 'reactylon';
 
 /**
  * Mounts/unmounts a discriminant-scoped TransformNode and its children
