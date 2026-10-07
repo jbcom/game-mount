@@ -38,7 +38,7 @@ src/
 
 ```text
 core  <-  react  <-  r3f
-  ^         
+  ^
   |-- pixi (mount.ts, shared.ts)  <-  pixi/react, pixi/pixi-react
   |-- babylon  <-  babylon/havok (imports nothing from babylon/index)
 ```
