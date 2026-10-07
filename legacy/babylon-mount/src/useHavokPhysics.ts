@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
-import HavokPhysics from '@babylonjs/havok';
 import { HavokPlugin } from '@babylonjs/core/Physics/v2/Plugins/havokPlugin.js';
+import HavokPhysics from '@babylonjs/havok';
+import { useEffect, useState } from 'react';
 // Side-effect import: registers `Scene.prototype.enablePhysics` /
 // `getPhysicsEngine` (Babylon ships physics as an opt-in scene mixin
 // to keep the core engine bundle small).
