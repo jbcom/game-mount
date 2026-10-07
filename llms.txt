@@ -1,0 +1,20 @@
+# game-mount
+
+> Renderer-neutral rendering policy and parent-sized mounts for Pixi, React Three Fiber and Babylon.
+
+## Documentation
+
+- [Introduction](https://jonbogaty.com/game-mount/introduction/): scope and entry points.
+- [Getting started](https://jonbogaty.com/game-mount/getting-started/): installation and mounting examples.
+- [API](https://jonbogaty.com/game-mount/API/): exported functions, components and lifecycle contracts.
+- [Architecture](https://jonbogaty.com/game-mount/ARCHITECTURE/): dependency boundaries and invariants.
+- [Decisions](https://jonbogaty.com/game-mount/decisions/): design rationale.
+- [Contributing](https://jonbogaty.com/game-mount/contributing/): development and validation.
+- [Release history](https://jonbogaty.com/game-mount/release-history/): release status.
+
+## Source
+
+- [Repository](https://github.com/jbcom/game-mount): source, tests and issues.
+- [npm](https://www.npmjs.com/package/game-mount): package registry entry after first release.
+
+Use only the adapter subpath needed by the application. The core needs no peers. All renderer peers are optional; install the selected adapter's peers explicitly. Mounts require a browser and a parent with a resolved height.

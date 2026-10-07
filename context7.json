@@ -1,0 +1,16 @@
+{
+  "$schema": "https://context7.com/schema/context7.json",
+  "projectTitle": "game-mount",
+  "description": "Renderer-neutral quality and pixel-ratio policy with parent-sized Pixi, React Three Fiber and Babylon mounts.",
+  "branch": "main",
+  "folders": ["docs", "src"],
+  "excludeFolders": ["node_modules", "dist", "coverage", "docs/dist", "docs/node_modules"],
+  "excludeFiles": ["CHANGELOG.md"],
+  "rules": [
+    "Import the renderer-neutral core from game-mount and adapters from their isolated subpaths.",
+    "Install only the peers required by the selected adapter; every package peer is optional.",
+    "Give the host a resolved height and create a fresh canvas for each Pixi Application.",
+    "Use RenderQuality and the shared DPR policy; do not introduce uncapped device ratios.",
+    "Havok physics is an opt-in entry point; applications serve its WASM and enable scene physics."
+  ]
+}
