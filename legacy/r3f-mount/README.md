@@ -3,7 +3,23 @@
 Parent-sized react-three-fiber `<Canvas>` mount, extracted from
 welcoming-wilds-island-adventure (the r3f-mount tournament winner), with the
 WebGL context-loss handling from blobolines and the error boundary +
-adaptive-resolution ladder from bone-buster baked in.
+adaptive-resolution ladder from bone-buster baked in. It first lived in
+welcoming-wilds-island-adventure's `packages/r3f-mount` and moved here with its
+history (see `docs/decisions.md`).
+
+## Install
+
+```sh
+pnpm add @arcade-cabinet/r3f-mount
+```
+
+Served by the `arcade-cabinet` Gitea registry on a private network, read anonymously:
+
+```ini
+@arcade-cabinet:registry=https://registry.npmjs.org/
+```
+
+Peers: `@react-three/fiber` ^9, `react` ^18 or ^19, `three` >=0.160 (tested against three 0.184).
 
 ## THE CSS CONTRACT — read this first
 
@@ -153,3 +169,22 @@ jsdom can't create a WebGL context. Pin your mount the way the source repo
 does: a real-Chromium (vitest browser mode / Playwright) test that renders
 the component, waits ~800ms, asserts `canvas.getContext('webgl2') ??
 canvas.getContext('webgl')` is non-null, and captures a boot screenshot.
+
+## Develop and release
+
+Built on the fleet toolchain, Node 26 (`.node-version`) and pnpm 12 (`packageManager`, through
+Corepack); the package itself runs on Node 24 and later.
+
+```sh
+corepack enable
+pnpm install --frozen-lockfile
+pnpm verify   # Biome, tsc, Vitest (jsdom), the dual ESM/CJS build, a packed-tarball consumer smoke
+```
+
+Conventional Commits drive release-please; merging its release pull request tags `v<version>`.
+The publish job in `.gitea/workflows/release.yml` reconciles on every `main` run: when the manifest
+version is tagged but absent from the registry, it verifies at the tag, packs twice and requires byte
+identity, publishes those bytes with the organisation secret `NPM_TOKEN` from a
+throwaway npmrc, then reruns the consumer smoke against the published version with
+`R3F_MOUNT_CONSUMER_SOURCE=@arcade-cabinet/r3f-mount@<version>` and an anonymous npm config. Never edit
+the `version` field by hand.
