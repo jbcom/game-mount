@@ -1,7 +1,0 @@
-node_modules/
-dist/
-coverage/
-*.tsbuildinfo
-*.tgz
-.vitest-attachments/
-__screenshots__/
