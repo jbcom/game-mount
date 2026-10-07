@@ -232,8 +232,24 @@ The repository keeps all three predecessors' commits. Each was cloned fresh, rew
 
 ## Toolchain and release
 
-Node 26 and pnpm 12 to build (`.nvmrc`, `mise.toml`, `packageManager`); `engines.node` is `>=24`,
-and CI runs Node 24 and 26 on Ubuntu. There is no Windows leg: the package is browser code and
+Node.js 22, 24 and 26 are supported with pnpm 12; `engines.node` is `>=22`. Development defaults
+to Node 26 (`.nvmrc`, `mise.toml`, `packageManager`), and CI runs all three Node lines on Ubuntu.
+The Node 22 floor is verified by the unit suite and packed-consumer smoke; no exact Node patch
+version is required. There is no Windows leg: the package is browser code and
 touches no paths or processes. TypeScript 7, Biome, Vitest 4. Release Please owns versions and the
 changelog, starting from 0.1.0; `.github/workflows/cd.yml` publishes later releases by npm trusted
 publishing (OIDC).
+
+## Repository integrity gates
+
+`CI / gate` always runs after every CI job, including all verify matrix legs. It accepts only
+`success` or `skipped`; a failed or cancelled job blocks merging. `tests/ci-gate.test.ts` exercises
+the workflow's actual shell step and checks that its dependencies cover every other job.
+
+Maintainers can apply the canonical OSS rulesets with `node scripts/apply-branch-ruleset.mjs`.
+Its defaults target `jbcom/game-mount` and require `CI / gate`, `title`, `Repository Policy / gate`
+and `Dependency Review / gate`. Arguments override the repository name and semicolon-separated
+checks. The rules protect main, enforce Conventional Commits on other branches, and protect
+release tags. They add no Copilot review or Code Quality rule, since both spend AI credits.
+The script is an explicit administrative action, never part of verification or installation.
+Its canonical formatting is preserved by a file-specific formatter override; lint still applies.
