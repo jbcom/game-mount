@@ -1,16 +1,9 @@
 /**
- * @arcade-cabinet/pixi-mount — public API.
+ * game-mount/pixi: the PixiJS 8 adapter. Needs `pixi.js` only.
  *
- * Framework-agnostic Pixi 8 Application mount/unmount lifecycle. The
- * optional React hook lives at `@arcade-cabinet/pixi-mount/react` so the
- * core entry never touches react.
+ * The React hook is `game-mount/pixi/react`; the `@pixi/react` component is
+ * `game-mount/pixi/pixi-react`.
  */
-
-export { applyFilterResolutionFix } from './filter-resolution-fix.js';
-export {
-  detectReduceMotion,
-  getDpr,
-  type MountOptions,
-  mountPixi,
-  type PixiMountHandle,
-} from './mount.js';
+export { applyFilterResolutionFix } from "./filterResolutionFix.js";
+export { type MountOptions, mountPixi, type PixiMountHandle } from "./mount.js";
+export { type PixiResizeMode, pixiRenderOptions } from "./shared.js";

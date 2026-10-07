@@ -1,51 +1,74 @@
 /**
- * The CSS contract, pinned in BOTH shapes it ships in (inline JS object +
- * stylesheet), so neither can drift from the other or lose the load-bearing
- * `min-height: 0` line — the #1 real-world footgun the fleet audit surfaced
- * (a flex item's implicit `min-height: auto` lets a `height: 100%` child
- * refuse to shrink, silently breaking HUD-docked layouts).
+ * The host contract ships twice, as an inline style object and as styles.css. This pins both and
+ * derives the expected stylesheet declarations from the object, so neither can drift from the
+ * other or lose `min-height: 0`.
  */
 
-import { readFileSync } from 'node:fs';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { describe, expect, it } from 'vitest';
-import { CABINET_CANVAS_HOST_CLASS, cabinetCanvasHostStyle } from '../src/hostStyle.js';
+import { readFileSync } from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { describe, expect, it } from "vitest";
+import { GAME_CANVAS_HOST_CLASS, gameCanvasHostStyle } from "../../src/index.js";
 
-const cssPath = path.join(path.dirname(fileURLToPath(import.meta.url)), '../src/styles.css');
+const css = readFileSync(
+  path.join(path.dirname(fileURLToPath(import.meta.url)), "../../src/styles.css"),
+  "utf8"
+);
 
-describe('cabinet-canvas-host contract', () => {
-  it('inline style object carries the full parent-fill contract', () => {
-    expect(cabinetCanvasHostStyle).toEqual({
-      position: 'relative',
+function declarations(selector: string): Map<string, string> {
+  const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const body = css.match(new RegExp(`(?:^|\\n)${escaped}\\s*\\{([^}]*)\\}`))?.[1];
+  if (body === undefined) throw new Error(`styles.css has no rule for ${selector}`);
+  return new Map(
+    body
+      .split(";")
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .map((line) => {
+        const [property = "", ...value] = line.split(":");
+        return [property.trim(), value.join(":").trim()] as const;
+      })
+  );
+}
+
+function kebab(property: string): string {
+  return property.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`);
+}
+
+describe("game-canvas-host contract", () => {
+  it("the inline style carries the full parent-fill contract", () => {
+    expect(gameCanvasHostStyle).toEqual({
+      position: "relative",
       flex: 1,
-      display: 'flex',
-      width: '100%',
-      height: '100%',
+      display: "flex",
+      width: "100%",
+      height: "100%",
       minHeight: 0,
     });
+    expect(Object.isFrozen(gameCanvasHostStyle)).toBe(true);
   });
 
-  it('stylesheet matches the inline object — min-height: 0 present on the host class', () => {
-    const css = readFileSync(cssPath, 'utf8');
-    const hostRule = css.match(/\.cabinet-canvas-host\s*\{([^}]*)\}/)?.[1] ?? '';
-    expect(hostRule).toContain('min-height: 0');
-    expect(hostRule).toContain('flex: 1');
-    expect(hostRule).toContain('width: 100%');
-    expect(hostRule).toContain('height: 100%');
-    expect(hostRule).toContain('display: flex');
-    expect(hostRule).toContain('position: relative');
+  it("the stylesheet's host rule declares exactly the inline style", () => {
+    const expected = new Map(
+      Object.entries(gameCanvasHostStyle).map(([property, value]) => [
+        kebab(property),
+        String(value),
+      ])
+    );
+    expect(declarations(`.${GAME_CANVAS_HOST_CLASS}`)).toEqual(expected);
   });
 
-  it('stylesheet styles the child canvas as a display:block full-bleed element', () => {
-    const css = readFileSync(cssPath, 'utf8');
-    const canvasRule = css.match(/\.cabinet-canvas-host canvas\s*\{([^}]*)\}/)?.[1] ?? '';
-    expect(canvasRule).toContain('display: block');
-    expect(canvasRule).toContain('width: 100%');
-    expect(canvasRule).toContain('height: 100%');
+  it("the stylesheet styles the child canvas as a full-bleed block", () => {
+    expect(declarations(`.${GAME_CANVAS_HOST_CLASS} canvas`)).toEqual(
+      new Map([
+        ["width", "100%"],
+        ["height", "100%"],
+        ["display", "block"],
+      ])
+    );
   });
 
-  it('class-name constant matches the stylesheet selector', () => {
-    expect(CABINET_CANVAS_HOST_CLASS).toBe('cabinet-canvas-host');
+  it("the class name is the neutral one the stylesheet targets", () => {
+    expect(GAME_CANVAS_HOST_CLASS).toBe("game-canvas-host");
   });
 });

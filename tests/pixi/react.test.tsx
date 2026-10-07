@@ -1,21 +1,20 @@
 /**
- * tests/react.test.tsx — usePixiMount under React 19 StrictMode.
+ * usePixiMount under React 19 StrictMode.
  *
- * The load-bearing scenario: StrictMode's mount→cleanup→mount cycle must
- * leave exactly ONE live Pixi app on ONE fresh canvas, with every
- * superseded app destroyed and its canvas removed (the illinois-jim
- * WEBGL_lose_context regression, exercised through the hook).
+ * The load-bearing scenario: StrictMode's mount, cleanup, mount cycle must leave exactly ONE live
+ * Pixi app on ONE fresh canvas, with every superseded app destroyed and its canvas removed (the
+ * lost-WebGL-context regression, exercised through the hook).
  */
 
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { __mockState, pixiMock } from './_pixi-mock';
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { __mockState, pixiMock } from "./_pixi-mock";
 
-vi.mock('pixi.js', () => pixiMock());
+vi.mock("pixi.js", () => pixiMock());
 
-import { act, type ReactElement, StrictMode, useRef } from 'react';
-import { createRoot, type Root } from 'react-dom/client';
-import type { PixiMountHandle } from '../src/index';
-import { usePixiMount } from '../src/react';
+import { act, type ReactElement, StrictMode, useRef } from "react";
+import { createRoot, type Root } from "react-dom/client";
+import type { PixiMountHandle } from "../../src/pixi/index";
+import { usePixiMount } from "../../src/pixi/react";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -39,12 +38,12 @@ async function flush(): Promise<void> {
 beforeEach(() => {
   __mockState.reset();
   captured.handle = null;
-  document.body.innerHTML = '';
+  document.body.innerHTML = "";
 });
 
-describe('usePixiMount', () => {
-  it('StrictMode double-mount leaves exactly one live app on one fresh canvas', async () => {
-    const el = document.createElement('div');
+describe("usePixiMount", () => {
+  it("StrictMode double-mount leaves exactly one live app on one fresh canvas", async () => {
+    const el = document.createElement("div");
     document.body.appendChild(el);
     let root: Root | null = null;
     await act(async () => {
@@ -52,7 +51,7 @@ describe('usePixiMount', () => {
       root.render(
         <StrictMode>
           <Stage />
-        </StrictMode>,
+        </StrictMode>
       );
     });
     await flush();
@@ -60,7 +59,7 @@ describe('usePixiMount', () => {
     const host = el.querySelector('[data-testid="host"]');
     expect(host).toBeTruthy();
     // Exactly one canvas lives in the host…
-    expect(host?.querySelectorAll('canvas').length).toBe(1);
+    expect(host?.querySelectorAll("canvas").length).toBe(1);
     // …the hook returned its handle…
     expect(captured.handle).not.toBeNull();
     expect(captured.handle?.canvas.parentElement).toBe(host);
@@ -73,17 +72,33 @@ describe('usePixiMount', () => {
     });
     // Full unmount: nothing live, no canvas left behind.
     expect(__mockState.apps.every((a) => a.destroyed)).toBe(true);
-    expect(document.querySelectorAll('canvas').length).toBe(0);
+    expect(document.querySelectorAll("canvas").length).toBe(0);
   });
 
-  it('passes a canvas ref through as options.canvas (single-mount trees)', async () => {
+  it("mounts nothing while the ref is unattached", async () => {
+    function Detached(): ReactElement {
+      const ref = useRef<HTMLDivElement | null>(null);
+      captured.handle = usePixiMount(ref);
+      return <span />;
+    }
+    const el = document.createElement("div");
+    document.body.appendChild(el);
+    const root = createRoot(el);
+    await act(async () => root.render(<Detached />));
+    await flush();
+    expect(captured.handle).toBeNull();
+    expect(__mockState.apps).toHaveLength(0);
+    await act(async () => root.unmount());
+  });
+
+  it("passes a canvas ref through as options.canvas (single-mount trees)", async () => {
     // (captured.handle already reset by beforeEach)
     function CanvasStage(): ReactElement {
       const canvasRef = useRef<HTMLCanvasElement | null>(null);
       captured.handle = usePixiMount(canvasRef);
       return <canvas ref={canvasRef} />;
     }
-    const el = document.createElement('div');
+    const el = document.createElement("div");
     document.body.appendChild(el);
     let root: Root | null = null;
     await act(async () => {
@@ -92,7 +107,7 @@ describe('usePixiMount', () => {
     });
     await flush();
 
-    const canvas = el.querySelector('canvas');
+    const canvas = el.querySelector("canvas");
     expect(captured.handle?.canvas).toBe(canvas);
     // Provided canvas: destroy must NOT remove it from the DOM.
     await act(async () => {

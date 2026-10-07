@@ -1,24 +1,23 @@
 /**
- * tests/filter-resolution-fix.test.ts — the pixijs/pixijs#11467 workaround
- * (bioluminescent-sea's Filter.defaultOptions.resolution = 'inherit').
+ * The pixijs/pixijs#11467 workaround: Filter.defaultOptions.resolution = 'inherit'.
  */
 
-import { describe, expect, it, vi } from 'vitest';
-import { pixiMock } from './_pixi-mock';
+import { describe, expect, it, vi } from "vitest";
+import { pixiMock } from "./_pixi-mock";
 
-vi.mock('pixi.js', () => pixiMock());
+vi.mock("pixi.js", () => pixiMock());
 
-import { Filter } from 'pixi.js';
-import { applyFilterResolutionFix } from '../src/index';
+import { Filter } from "pixi.js";
+import { applyFilterResolutionFix } from "../../src/pixi/index";
 
-describe('applyFilterResolutionFix', () => {
+describe("applyFilterResolutionFix", () => {
   it("sets Filter.defaultOptions.resolution to 'inherit'", () => {
     const filter = Filter as unknown as { defaultOptions: { resolution: number | string } };
     expect(filter.defaultOptions.resolution).toBe(1);
     applyFilterResolutionFix();
-    expect(filter.defaultOptions.resolution).toBe('inherit');
+    expect(filter.defaultOptions.resolution).toBe("inherit");
     // Idempotent by nature — calling again keeps the fix in place.
     applyFilterResolutionFix();
-    expect(filter.defaultOptions.resolution).toBe('inherit');
+    expect(filter.defaultOptions.resolution).toBe("inherit");
   });
 });

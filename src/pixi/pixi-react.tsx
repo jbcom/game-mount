@@ -1,18 +1,15 @@
 /**
- * @arcade-cabinet/pixi-mount/pixi-react — fleet mount policy for @pixi/react.
+ * game-mount/pixi/pixi-react: `PixiReactMount`, the mount policy for `@pixi/react`. Needs
+ * `pixi.js`, `react` and `@pixi/react`.
  *
- * @pixi/react v8 creates and owns its Application; it cannot adopt the
- * Application returned by mountPixi(). This component therefore wraps
- * @pixi/react's supported <Application> API directly. It never calls
- * mountPixi() and never creates a second Application.
- *
- * React owns the canvas element and @pixi/react owns Application teardown.
- * This adapter retains the framework-neutral mount's DPR, reduced-motion and
- * single resize-pipeline contracts around that one upstream-owned instance.
+ * `@pixi/react` v8 creates and owns its Application and cannot adopt one from `mountPixi`, so this
+ * component wraps `@pixi/react`'s own `<Application>` and never creates a second one. React owns
+ * the canvas and `@pixi/react` owns teardown; this component adds the same quality, reduced-motion
+ * and single resize-pipeline contracts `mountPixi` has, around that one Application.
  */
 
-import { type ApplicationRef, Application as PixiReactApplication } from '@pixi/react';
-import type { Application } from 'pixi.js';
+import { type ApplicationRef, Application as PixiReactApplication } from "@pixi/react";
+import type { Application } from "pixi.js";
 import {
   type ComponentProps,
   type ReactElement,
@@ -20,79 +17,89 @@ import {
   useCallback,
   useEffect,
   useRef,
-} from 'react';
-import { detectReduceMotion, getDpr } from './mount.js';
+} from "react";
+import { detectReduceMotion } from "../core/motion.js";
+import { DEFAULT_QUALITY, type RenderQuality } from "../core/quality.js";
+import {
+  DEFAULT_BACKGROUND,
+  FALLBACK_HEIGHT,
+  FALLBACK_WIDTH,
+  isWindow,
+  measure,
+  type PixiResizeMode,
+  pixiRenderOptions,
+  type ResizeEmitter,
+  toPixelSize,
+} from "./shared.js";
 
-type PixiReactChildren = ComponentProps<typeof PixiReactApplication>['children'];
+type PixiReactChildren = ComponentProps<typeof PixiReactApplication>["children"];
 
-export type PixiReactResizeMode = 'observer' | 'resizeTo' | 'manual';
 export type PixiReactResizeTarget = HTMLElement | Window | RefObject<HTMLElement | null>;
 
 export interface PixiReactMountHandle {
-  /** The only Pixi Application. It is created and destroyed by @pixi/react. */
+  /** The only Application; `@pixi/react` creates and destroys it. */
   readonly app: Application;
-  /** The React-owned canvas used by the Application. */
+  /** The React-owned canvas the Application renders to. */
   readonly canvas: HTMLCanvasElement;
-  /** Whether reduced-motion is honoured for this mount. */
+  /** Whether reduced motion is honoured for this mount. */
   readonly reduceMotion: boolean;
-  /** Current logical renderer width in CSS pixels. */
+  /** Current logical width in CSS pixels. */
   readonly width: number;
-  /** Current logical renderer height in CSS pixels. */
+  /** Current logical height in CSS pixels. */
   readonly height: number;
-  /** Manual resize: renderer first, then onResize, deduped. */
+  /** Resize to integer CSS pixels: renderer first, then `onResize`; same-size requests are ignored. */
   resize(width: number, height: number): void;
 }
 
 export interface PixiReactMountProps {
   children?: PixiReactChildren;
-  /** CSS class applied to @pixi/react's canvas. */
+  /** Class for the canvas. */
   className?: string;
-  /** Pixi background color. Defaults to the fleet near-black. */
+  /** Clear colour. Defaults to a near-black. */
   background?: number | string;
-  /** Caps devicePixelRatio. Defaults to 2. */
-  maxResolution?: number;
-  /** Enables integer coordinates, resolution 1 and disables antialiasing. */
+  /** Pixel-ratio cap and antialiasing; defaults to the `high` tier. */
+  quality?: RenderQuality;
+  /** Pixel-art mode: integer coordinates, resolution 1, no antialiasing. */
   pixelSnap?: boolean;
-  /** Auto-detects prefers-reduced-motion when omitted. */
+  /** Honour reduced motion. Detected from `prefers-reduced-motion` when omitted. */
   reduceMotion?: boolean;
-  /** Resize wiring. Defaults to one ResizeObserver pipeline. */
-  resizeMode?: PixiReactResizeMode;
-  /** Defaults to the canvas parent, then the canvas itself. */
+  /** Resize wiring; defaults to one ResizeObserver. */
+  resizeMode?: PixiResizeMode;
+  /** The element (or window) whose box sets the size. Defaults to the canvas's parent. */
   resizeTarget?: PixiReactResizeTarget;
-  /** Called after the renderer has resized. */
+  /** Called after every renderer resize, for scene reflow. */
   onResize?: (width: number, height: number) => void;
-  /** Called once for each successfully initialised live Application. */
+  /** Called once for each Application that finishes initialising. */
   onReady?: (handle: PixiReactMountHandle) => void;
 }
 
-interface ResizeEmitter {
-  on(event: 'resize', listener: (width: number, height: number) => void): unknown;
-  off(event: 'resize', listener: (width: number, height: number) => void): unknown;
+interface CapturedOptions {
+  readonly background: number | string;
+  readonly quality: RenderQuality;
+  readonly pixelSnap: boolean;
+  readonly reduceMotion: boolean;
+  readonly resizeMode: PixiResizeMode;
+  readonly resizeTarget?: PixiReactResizeTarget;
 }
 
+/** One initialised Application and the resize wiring currently attached to it. */
 interface MountedRuntime {
   readonly app: Application;
   readonly canvas: HTMLCanvasElement;
   readonly handle: PixiReactMountHandle;
-  bound: boolean;
   currentWidth: number;
   currentHeight: number;
-  observer: ResizeObserver | null;
-  removeWindowListener: (() => void) | null;
-  resizeListener: ((width: number, height: number) => void) | null;
+  /** Detaches the wiring; `null` while unbound. */
+  unbind: (() => void) | null;
 }
 
-interface CapturedMountOptions {
-  readonly background: number | string;
-  readonly maxResolution: number;
-  readonly pixelSnap: boolean;
-  readonly reduceMotion: boolean;
-  readonly resizeMode: PixiReactResizeMode;
-  readonly resizeTarget?: PixiReactResizeTarget;
+function unbind(runtime: MountedRuntime): void {
+  runtime.unbind?.();
+  runtime.unbind = null;
 }
 
 function isRefTarget(target: PixiReactResizeTarget): target is RefObject<HTMLElement | null> {
-  return typeof target === 'object' && target !== null && 'current' in target;
+  return "current" in target;
 }
 
 function resolveTarget(target: PixiReactResizeTarget | undefined): HTMLElement | Window | null {
@@ -100,47 +107,70 @@ function resolveTarget(target: PixiReactResizeTarget | undefined): HTMLElement |
   return isRefTarget(target) ? target.current : target;
 }
 
-function isWindowTarget(target: HTMLElement | Window): target is Window {
-  return typeof Window !== 'undefined' && target instanceof Window;
-}
+/**
+ * Attach the single resize pipeline to a runtime and return the function that detaches it: the
+ * renderer's `resize` event feeds the handle and `onResize`, and the chosen resize mode feeds
+ * `renderer.resize()`.
+ */
+function attach(
+  runtime: MountedRuntime,
+  options: CapturedOptions,
+  onResize: () => ((width: number, height: number) => void) | undefined
+): () => void {
+  const emitter = runtime.app.renderer as unknown as ResizeEmitter;
+  const listener = (width: number, height: number): void => {
+    runtime.currentWidth = width;
+    runtime.currentHeight = height;
+    onResize()?.(width, height);
+  };
+  emitter.on("resize", listener);
+  const detach: Array<() => void> = [() => emitter.off("resize", listener)];
 
-function measure(
-  target: HTMLElement | Window,
-  fallbackWidth: number,
-  fallbackHeight: number,
-): readonly [number, number] {
-  if (isWindowTarget(target)) {
-    return [target.innerWidth || fallbackWidth, target.innerHeight || fallbackHeight];
+  const target =
+    resolveTarget(options.resizeTarget) ?? runtime.canvas.parentElement ?? runtime.canvas;
+  const resizeToTarget = (): void => {
+    const [width, height] = measure(target, runtime.currentWidth, runtime.currentHeight);
+    runtime.handle.resize(width, height);
+  };
+
+  if (options.resizeMode === "observer") {
+    if (isWindow(target)) {
+      target.addEventListener("resize", resizeToTarget);
+      detach.push(() => target.removeEventListener("resize", resizeToTarget));
+    } else if (typeof globalThis.ResizeObserver === "function") {
+      const observer = new globalThis.ResizeObserver((entries) => {
+        for (const entry of entries) {
+          runtime.handle.resize(entry.contentRect.width, entry.contentRect.height);
+        }
+      });
+      observer.observe(target);
+      detach.push(() => observer.disconnect());
+    }
+    resizeToTarget();
+  } else if (options.resizeMode === "resizeTo") {
+    runtime.app.resizeTo = target;
+    resizeToTarget();
   }
-  const width = target.clientWidth || (target instanceof HTMLCanvasElement ? target.width : 0);
-  const height = target.clientHeight || (target instanceof HTMLCanvasElement ? target.height : 0);
-  return [width || fallbackWidth, height || fallbackHeight];
-}
 
-function logicalSize(app: Application): readonly [number, number] {
-  const width = app.screen?.width;
-  const height = app.screen?.height;
-  return [
-    typeof width === 'number' && width > 0 ? width : 800,
-    typeof height === 'number' && height > 0 ? height : 450,
-  ];
+  return () => {
+    for (const step of detach) step();
+  };
 }
 
 /**
- * Render one @pixi/react Application with the shared arcade mount policy.
+ * Render one `@pixi/react` Application under the shared mount policy.
  *
- * Application options are captured for this component lifetime. Change its
- * React key to deliberately rebuild with different mount policy. `onResize`
- * and `onReady` callbacks are read from their latest props.
+ * Mount options are captured for the component's lifetime; change its `key` to rebuild with
+ * different ones. `onResize` and `onReady` are always read from the latest props.
  */
 export function PixiReactMount({
   children,
   className,
-  background = 0x080810,
-  maxResolution = 2,
+  background = DEFAULT_BACKGROUND,
+  quality = DEFAULT_QUALITY,
   pixelSnap = false,
   reduceMotion,
-  resizeMode = 'observer',
+  resizeMode = "observer",
   resizeTarget,
   onResize,
   onReady,
@@ -153,99 +183,43 @@ export function PixiReactMount({
   onResizeRef.current = onResize;
   onReadyRef.current = onReady;
 
-  const capturedOptions = useRef<CapturedMountOptions | null>(null);
-  capturedOptions.current ??= {
+  const capturedRef = useRef<CapturedOptions | null>(null);
+  capturedRef.current ??= {
     background,
-    maxResolution,
+    quality,
     pixelSnap,
     reduceMotion: reduceMotion ?? detectReduceMotion(),
     resizeMode,
     ...(resizeTarget === undefined ? {} : { resizeTarget }),
   };
+  const captured = capturedRef.current;
 
-  const unbindRuntime = useCallback((runtime: MountedRuntime): void => {
-    if (!runtime.bound) return;
-    runtime.bound = false;
-    runtime.observer?.disconnect();
-    runtime.observer = null;
-    runtime.removeWindowListener?.();
-    runtime.removeWindowListener = null;
-    if (runtime.resizeListener !== null) {
-      (runtime.app.renderer as unknown as ResizeEmitter).off('resize', runtime.resizeListener);
-      runtime.resizeListener = null;
-    }
-  }, []);
-
-  const bindRuntime = useCallback((runtime: MountedRuntime): void => {
-    if (runtime.bound) return;
-    runtime.bound = true;
-    const options = capturedOptions.current;
-    if (options === null) throw new Error('PixiReactMount options were not captured');
-
-    const resizeListener = (width: number, height: number): void => {
-      runtime.currentWidth = width;
-      runtime.currentHeight = height;
-      onResizeRef.current?.(width, height);
-    };
-    runtime.resizeListener = resizeListener;
-    (runtime.app.renderer as unknown as ResizeEmitter).on('resize', resizeListener);
-
-    const target =
-      resolveTarget(options.resizeTarget) ?? runtime.canvas.parentElement ?? runtime.canvas;
-    const resizeToTarget = (): void => {
-      const [width, height] = measure(target, runtime.currentWidth, runtime.currentHeight);
-      runtime.handle.resize(width, height);
-    };
-
-    if (options.resizeMode === 'observer') {
-      if (isWindowTarget(target)) {
-        target.addEventListener('resize', resizeToTarget);
-        runtime.removeWindowListener = () => target.removeEventListener('resize', resizeToTarget);
-      } else {
-        const Observer = globalThis.ResizeObserver;
-        if (typeof Observer === 'function') {
-          runtime.observer = new Observer((entries) => {
-            for (const entry of entries) {
-              runtime.handle.resize(entry.contentRect.width, entry.contentRect.height);
-            }
-          });
-          runtime.observer.observe(target);
-        }
-      }
-      resizeToTarget();
-    } else if (options.resizeMode === 'resizeTo') {
-      runtime.app.resizeTo = target;
-      resizeToTarget();
-    }
-  }, []);
+  const bind = useCallback(
+    (runtime: MountedRuntime): void => {
+      runtime.unbind = attach(runtime, captured, () => onResizeRef.current);
+    },
+    [captured]
+  );
 
   const handleInit = useCallback(
     (app: Application): void => {
+      // @pixi/react initialises asynchronously; this component may be gone by then.
       if (!mountedRef.current) return;
       const canvas = applicationRef.current?.getCanvas();
-      if (canvas === null || canvas === undefined) {
-        throw new Error('@pixi/react initialised without exposing its canvas');
-      }
+      if (!canvas) throw new Error("@pixi/react initialised without exposing its canvas");
 
-      canvas.style.display = 'block';
-      canvas.style.width = '100%';
-      canvas.style.height = '100%';
+      canvas.style.display = "block";
+      canvas.style.width = "100%";
+      canvas.style.height = "100%";
 
-      const existing = runtimeRef.current;
-      if (existing !== null && existing.app === app) {
-        bindRuntime(existing);
-        return;
-      }
-      if (existing !== null) unbindRuntime(existing);
+      // A replaced Application (a remount inside @pixi/react) leaves its wiring behind; drop it.
+      if (runtimeRef.current) unbind(runtimeRef.current);
 
-      const [currentWidth, currentHeight] = logicalSize(app);
-      const options = capturedOptions.current;
-      if (options === null) throw new Error('PixiReactMount options were not captured');
       let runtime: MountedRuntime;
       const handle: PixiReactMountHandle = {
         app,
         canvas,
-        reduceMotion: options.reduceMotion,
+        reduceMotion: captured.reduceMotion,
         get width() {
           return runtime.currentWidth;
         },
@@ -253,8 +227,7 @@ export function PixiReactMount({
           return runtime.currentHeight;
         },
         resize(width: number, height: number): void {
-          const nextWidth = Math.max(1, Math.floor(width));
-          const nextHeight = Math.max(1, Math.floor(height));
+          const [nextWidth, nextHeight] = toPixelSize(width, height);
           if (nextWidth === runtime.currentWidth && nextHeight === runtime.currentHeight) return;
           app.renderer.resize(nextWidth, nextHeight);
         },
@@ -263,45 +236,39 @@ export function PixiReactMount({
         app,
         canvas,
         handle,
-        bound: false,
-        currentWidth,
-        currentHeight,
-        observer: null,
-        removeWindowListener: null,
-        resizeListener: null,
+        currentWidth: app.screen.width,
+        currentHeight: app.screen.height,
+        unbind: null,
       };
       runtimeRef.current = runtime;
-      bindRuntime(runtime);
+      bind(runtime);
       onReadyRef.current?.(handle);
     },
-    [bindRuntime, unbindRuntime],
+    [bind, captured]
   );
 
   useEffect(() => {
     mountedRef.current = true;
+    // Effects reconnecting (StrictMode, a hidden <Activity> shown again) rebind only an
+    // Application @pixi/react still holds; a replaced one is wired by its own onInit.
     const runtime = runtimeRef.current;
-    if (runtime !== null) bindRuntime(runtime);
+    if (runtime !== null && applicationRef.current?.getApplication() === runtime.app) {
+      bind(runtime);
+    }
     return () => {
       mountedRef.current = false;
-      const current = runtimeRef.current;
-      if (current !== null) unbindRuntime(current);
+      if (runtimeRef.current) unbind(runtimeRef.current);
     };
-  }, [bindRuntime, unbindRuntime]);
-
-  const options = capturedOptions.current;
-  if (options === null) throw new Error('PixiReactMount options were not captured');
+  }, [bind]);
 
   return (
     <PixiReactApplication
       ref={applicationRef}
       className={className}
-      width={800}
-      height={450}
-      background={options.background}
-      antialias={!options.pixelSnap}
-      resolution={options.pixelSnap ? 1 : getDpr(options.maxResolution)}
-      autoDensity={true}
-      roundPixels={options.pixelSnap}
+      width={FALLBACK_WIDTH}
+      height={FALLBACK_HEIGHT}
+      background={captured.background}
+      {...pixiRenderOptions(captured.quality, captured.pixelSnap)}
       resizeTo={undefined}
       onInit={handleInit}
     >

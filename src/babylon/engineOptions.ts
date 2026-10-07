@@ -1,53 +1,37 @@
-import type { EngineOptions } from '@babylonjs/core/Engines/thinEngine';
+import type { EngineOptions } from "@babylonjs/core/Engines/thinEngine";
+import { isMobileDevice, type NavigatorLike } from "../core/device.js";
+import { detectQuality, type RenderQuality } from "../core/quality.js";
 
-/**
- * Detects a mobile UA. Kept as a small standalone export so callers can
- * branch their own logic on it without re-implementing the sniff.
- */
-export function isMobileDevice(): boolean {
-  if (typeof navigator === 'undefined') return false;
-  return /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+export interface BabylonEngineOptionsInput {
+  /** Pixel-ratio cap and antialiasing. Defaults to `detectQuality()`: `low` on mobile, `high` elsewhere. */
+  quality?: RenderQuality;
+  /** Fields spread last, over everything this function decides. */
+  overrides?: Partial<EngineOptions>;
+  /** The navigator to classify; defaults to the global one. */
+  navigator?: NavigatorLike;
 }
 
 /**
- * Mobile-aware Babylon `EngineOptions`, folding in the tuning duplicated
- * across the fleet: disable stencil/AA and prefer low-power on mobile
- * (stellar-descent), and cap the hardware scaling level on high-DPI
- * mobile screens so the GPU isn't asked to render more pixels than the
- * panel needs (also stellar-descent, applied by the caller via
- * `hardwareScalingLevel` since Babylon only exposes that as a post-init
- * `engine.setHardwareScalingLevel()` call, not a constructor option).
+ * Babylon `EngineOptions` that apply the shared quality policy.
  *
- * `overrides` is spread last, so any field can still be escape-hatched
- * per-game (e.g. martian-trail's `preserveDrawingBuffer: true`, needed
- * for screenshot capture, which the mobile-perf default disables).
+ * The pixel-ratio cap goes through Babylon's own `limitDeviceRatio` with `adaptToDeviceRatio` on,
+ * so Babylon renders at `min(devicePixelRatio, quality.maxDpr)`, the same ratio the other adapters
+ * use. On a mobile device it also turns the stencil buffer off and asks for the low-power GPU.
+ * `preserveDrawingBuffer` is off; turn it on through `overrides` when you read frames back.
+ *
+ * Pass the result to Reactylon's `<Engine engineOptions={...}>` or to `new Engine(canvas,
+ * antialias, options)`.
  */
-export function mobileEngineOptions(overrides?: Partial<EngineOptions>): EngineOptions {
-  const mobile = isMobileDevice();
-  const pixelRatio = typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1;
-
-  const base: EngineOptions = {
+export function babylonEngineOptions(input: BabylonEngineOptionsInput = {}): EngineOptions {
+  const mobile = isMobileDevice(input.navigator);
+  const quality = input.quality ?? detectQuality(input.navigator);
+  return {
     preserveDrawingBuffer: false,
     stencil: !mobile,
-    antialias: !mobile || pixelRatio < 2,
-    powerPreference: mobile ? 'low-power' : 'high-performance',
-    adaptToDeviceRatio: !mobile,
+    antialias: quality.antialias,
+    powerPreference: mobile ? "low-power" : "high-performance",
+    adaptToDeviceRatio: true,
+    limitDeviceRatio: quality.maxDpr,
+    ...input.overrides,
   };
-
-  return { ...base, ...overrides };
-}
-
-/**
- * The hardware-scaling-level companion to `mobileEngineOptions` — call
- * once after `new Engine(...)` on mobile+high-DPI to cap GPU resolution.
- * Returns the scaling level applied (1 = no scaling / not applied).
- */
-export function mobileHardwareScalingLevel(): number {
-  if (typeof window === 'undefined') return 1;
-  const mobile = isMobileDevice();
-  const pixelRatio = window.devicePixelRatio || 1;
-  if (mobile && pixelRatio > 2) {
-    return pixelRatio / 2;
-  }
-  return 1;
 }

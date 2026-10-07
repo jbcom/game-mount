@@ -1,55 +1,47 @@
 /**
- * @arcade-cabinet/pixi-mount/react — optional React hook wrapper.
- *
- * Thin, NOT the primary API: the framework-agnostic core stays
- * element-in/handle-out (on-the-ropes' model). This hook is a convenience
- * layer mirroring bioluminescent-sea's disposed-guard useEffect pattern
- * for StrictMode safety.
- *
- * `react` is an optional peer dependency — only this subpath needs it.
+ * game-mount/pixi/react: `usePixiMount`, a React hook over `mountPixi`. Needs `pixi.js` and `react`.
  */
 
-import { type RefObject, useEffect, useRef, useState } from 'react';
-import { type MountOptions, mountPixi, type PixiMountHandle } from './mount.js';
+import { type RefObject, useEffect, useRef, useState } from "react";
+import { type MountOptions, mountPixi, type PixiMountHandle } from "./mount.js";
 
 /**
- * Mount a Pixi Application onto the ref'd element.
+ * Mount a Pixi Application into the referenced element; `null` until Pixi has initialised.
  *
- * RECOMMENDED: pass a ref to a plain container element (a `<div>`). The
- * mount then mints a fresh canvas per Application, which is what makes
- * StrictMode's mount→cleanup→mount cycle safe — a destroyed Pixi app's
- * WebGL context is lost forever on its canvas ELEMENT, so a reused
- * `<canvas>` ref boots the second app onto a dead context (illinois-jim's
- * documented WEBGL_lose_context poison). A canvas ref still works for
- * single-mount trees, but carries that hazard under StrictMode.
+ * Pass a ref to a container element (a `<div>`), not to a `<canvas>`: the mount then creates a
+ * fresh canvas for every Application, which is what makes StrictMode's mount, cleanup, mount cycle
+ * safe (see `mountPixi`). A canvas ref works in trees that mount once, but under StrictMode the
+ * second Application boots onto the first one's lost context.
  *
- * `options` are captured when the mount effect runs; changing them later
- * does not remount. Returns null until the async Pixi init resolves.
+ * `options` are read when the mount effect runs; changing them later does not remount. Remount
+ * deliberately by changing the component's `key`.
  */
 export function usePixiMount(
   ref: RefObject<HTMLCanvasElement | HTMLElement | null>,
-  options: MountOptions = {},
+  options: MountOptions = {}
 ): PixiMountHandle | null {
   const [handle, setHandle] = useState<PixiMountHandle | null>(null);
   const optionsRef = useRef(options);
   optionsRef.current = options;
 
   useEffect(() => {
-    const el = ref.current;
-    if (el === null) return undefined;
+    const element = ref.current;
+    if (element === null) return undefined;
     let disposed = false;
     let mounted: PixiMountHandle | null = null;
     const base = optionsRef.current;
-    const opts: MountOptions =
-      el instanceof HTMLCanvasElement ? { ...base, canvas: el } : { ...base, container: el };
-    void mountPixi(opts).then((h) => {
-      // Disposed-guard: StrictMode may have cleaned up before init resolved.
+    const mountOptions: MountOptions =
+      element instanceof HTMLCanvasElement
+        ? { ...base, canvas: element }
+        : { ...base, container: element };
+    void mountPixi(mountOptions).then((next) => {
+      // StrictMode may have run the cleanup before Pixi finished initialising.
       if (disposed) {
-        h.destroy();
+        next.destroy();
         return;
       }
-      mounted = h;
-      setHandle(h);
+      mounted = next;
+      setHandle(next);
     });
     return () => {
       disposed = true;

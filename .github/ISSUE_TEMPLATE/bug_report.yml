@@ -1,0 +1,36 @@
+name: Bug report
+description: Report reproducible incorrect behavior in game-mount.
+title: "fix: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: For security vulnerabilities, use the private reporting link in SECURITY.md.
+  - type: textarea
+    id: summary
+    attributes:
+      label: What happened?
+      description: Describe the observed behavior and what you expected instead.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal reproduction
+      description: Include the smallest runnable code sample and exact commands.
+      render: ts
+    validations:
+      required: true
+  - type: input
+    id: versions
+    attributes:
+      label: Versions
+      description: game-mount, the entry point (for example game-mount/r3f), the renderer and its version, React, browser, and operating system.
+      placeholder: game-mount 0.1.0; game-mount/pixi; pixi.js 8.22.0; React 19; Chrome 150; Android 16
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Add stack traces, console output, devicePixelRatio, or other useful details.

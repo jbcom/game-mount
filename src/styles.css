@@ -1,14 +1,12 @@
-/* @arcade-cabinet/r3f-mount — the parent-sized canvas-host contract.
+/* game-mount: the parent-sized canvas-host contract.
  *
- * `min-height: 0` is load-bearing: without it a flex item's implicit
- * `min-height: auto` lets a `height: 100%` child refuse to shrink below its
- * content's intrinsic size, silently breaking any layout that docks a HUD
- * panel beside the canvas. See the package README ("The CSS contract").
+ * `min-height: 0` is load-bearing: without it a flex item's implicit `min-height: auto` lets a
+ * `height: 100%` child refuse to shrink below its content, which breaks any layout that docks a HUD
+ * panel beside the canvas.
  *
- * CabinetCanvas also applies these host rules inline, so importing this file
- * is belt-and-suspenders (and provides the child-canvas rule for apps that
- * mount a raw <Canvas> inside their own `.cabinet-canvas-host` element). */
-.cabinet-canvas-host {
+ * GameCanvas applies the host rules inline as well, so this file is needed only for the child-canvas
+ * rule, or for a canvas mounted by hand into an element carrying the `game-canvas-host` class. */
+.game-canvas-host {
   position: relative;
   flex: 1;
   display: flex;
@@ -17,7 +15,7 @@
   min-height: 0;
 }
 
-.cabinet-canvas-host canvas {
+.game-canvas-host canvas {
   width: 100%;
   height: 100%;
   display: block;

@@ -1,53 +1,60 @@
-import { HavokPlugin } from '@babylonjs/core/Physics/v2/Plugins/havokPlugin.js';
-import HavokPhysics from '@babylonjs/havok';
-import { useEffect, useState } from 'react';
-// Side-effect import: registers `Scene.prototype.enablePhysics` /
-// `getPhysicsEngine` (Babylon ships physics as an opt-in scene mixin
-// to keep the core engine bundle small).
-import '@babylonjs/core/Physics/v2/physicsEngineComponent.js';
-
 /**
- * One Havok WASM load per process. `wasmBaseUrl` defaults to `/havok/`
- * (matching Vite's `import.meta.env.BASE_URL` convention when the WASM
- * is served from `public/havok/`); pass an explicit base for a
- * different asset layout.
- *
- * The promise is cached at module scope, not per-hook-instance, so the
- * first caller pays the WASM fetch and every subsequent mount (or
- * remount, e.g. re-entering a scene) resolves instantly to the same
- * plugin instance instead of re-downloading.
+ * game-mount/babylon/havok: `useHavokPhysics`. Needs `react`, `@babylonjs/core` and
+ * `@babylonjs/havok`; it is its own entry point so a Babylon game without physics never installs
+ * Havok.
  */
+
+import { HavokPlugin } from "@babylonjs/core/Physics/v2/Plugins/havokPlugin.js";
+import HavokPhysics from "@babylonjs/havok";
+import { useEffect, useState } from "react";
+// Registers Scene.prototype.enablePhysics / getPhysicsEngine: Babylon ships physics as an opt-in
+// scene mixin to keep the core bundle small.
+import "@babylonjs/core/Physics/v2/physicsEngineComponent.js";
+
+// One Havok WASM load per page, cached at module scope: the first caller pays the download and
+// every later mount (re-entering a level, a StrictMode remount) gets the same plugin at once.
 let pluginPromise: Promise<HavokPlugin> | null = null;
 let cachedWasmBaseUrl: string | null = null;
 
 function loadHavokPlugin(wasmBaseUrl: string): Promise<HavokPlugin> {
   if (pluginPromise && cachedWasmBaseUrl === wasmBaseUrl) return pluginPromise;
   cachedWasmBaseUrl = wasmBaseUrl;
-  pluginPromise = (async () => {
-    const hk = await HavokPhysics({
-      locateFile: (file: string) => `${wasmBaseUrl}${file}`,
-    });
-    return new HavokPlugin(true, hk);
+  const promise = (async () => {
+    const havok = await HavokPhysics({ locateFile: (file: string) => `${wasmBaseUrl}${file}` });
+    return new HavokPlugin(true, havok);
   })();
-  return pluginPromise;
+  pluginPromise = promise;
+  // A failed load (offline, wrong base URL) must not be cached, or no later mount could retry.
+  promise.catch(() => {
+    if (pluginPromise === promise) {
+      pluginPromise = null;
+      cachedWasmBaseUrl = null;
+    }
+  });
+  return promise;
 }
 
 export interface UseHavokPhysicsResult {
-  /** `null` until the WASM has loaded — gate physics-body/collider
-   *  attachment on this, while the visual scene renders immediately
-   *  ("paint first, physics catches up"). */
+  /**
+   * `null` until the WASM has loaded. Attach bodies and colliders once it is set; the scene can
+   * render before then.
+   */
   plugin: HavokPlugin | null;
+  /** The load failure, if any. The next mount retries. */
   error: Error | null;
 }
 
 /**
- * Loads the Havok physics plugin (idempotent/cached at module scope)
- * and returns it once ready. Callers still call `scene.enablePhysics`
- * themselves with their own gravity vector — this hook only owns WASM
- * bootstrap, not per-scene physics activation, since gravity/units are
- * game-specific (Mars gravity, zero-g, etc).
+ * Load the Havok physics plugin once per page and return it when ready.
+ *
+ * `wasmBaseUrl` is where `HavokPhysics.wasm` is served from, with a trailing slash; the default
+ * `/havok/` matches a file copied to `public/havok/` in a Vite app. The game serves the file; this
+ * package does not bundle it.
+ *
+ * Enabling physics on a scene stays with the caller (`scene.enablePhysics(gravity, plugin)`):
+ * gravity and units are the game's.
  */
-export function useHavokPhysics(wasmBaseUrl = '/havok/'): UseHavokPhysicsResult {
+export function useHavokPhysics(wasmBaseUrl = "/havok/"): UseHavokPhysicsResult {
   const [plugin, setPlugin] = useState<HavokPlugin | null>(null);
   const [error, setError] = useState<Error | null>(null);
 
@@ -57,9 +64,9 @@ export function useHavokPhysics(wasmBaseUrl = '/havok/'): UseHavokPhysicsResult 
       (loaded) => {
         if (!cancelled) setPlugin(loaded);
       },
-      (err: unknown) => {
-        if (!cancelled) setError(err instanceof Error ? err : new Error(String(err)));
-      },
+      (reason: unknown) => {
+        if (!cancelled) setError(reason instanceof Error ? reason : new Error(String(reason)));
+      }
     );
     return () => {
       cancelled = true;
@@ -69,7 +76,7 @@ export function useHavokPhysics(wasmBaseUrl = '/havok/'): UseHavokPhysicsResult 
   return { plugin, error };
 }
 
-/** Test-only: reset the module-level plugin cache. */
+/** Forget the cached plugin, so the next mount loads Havok again. Meant for tests. */
 export function _resetHavokPhysicsCache(): void {
   pluginPromise = null;
   cachedWasmBaseUrl = null;

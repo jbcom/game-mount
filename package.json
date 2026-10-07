@@ -1,0 +1,242 @@
+{
+  "name": "game-mount",
+  "version": "0.1.0",
+  "description": "Mount a game renderer into a parent-sized box: one DPR, quality and reduced-motion policy, with adapters for PixiJS, @pixi/react, react-three-fiber and Babylon.js (Reactylon). Each adapter needs only its own renderer installed.",
+  "type": "module",
+  "license": "MIT",
+  "author": "Jon Bogaty <jon@jonbogaty.com>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jbcom/game-mount.git"
+  },
+  "homepage": "https://jbcom.github.io/game-mount/",
+  "bugs": {
+    "url": "https://github.com/jbcom/game-mount/issues"
+  },
+  "keywords": [
+    "game-dev",
+    "canvas",
+    "webgl",
+    "devicepixelratio",
+    "pixijs",
+    "pixi-react",
+    "react-three-fiber",
+    "r3f",
+    "babylonjs",
+    "reactylon",
+    "react",
+    "strictmode",
+    "mobile"
+  ],
+  "engines": {
+    "node": ">=24"
+  },
+  "packageManager": "pnpm@12.9.1",
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "sideEffects": [
+    "*.css",
+    "./dist/esm/babylon/havok.js",
+    "./dist/cjs/babylon/havok.cjs"
+  ],
+  "main": "./dist/cjs/index.cjs",
+  "module": "./dist/esm/index.js",
+  "types": "./dist/esm/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/esm/index.d.ts",
+        "default": "./dist/esm/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/index.d.cts",
+        "default": "./dist/cjs/index.cjs"
+      }
+    },
+    "./react": {
+      "import": {
+        "types": "./dist/esm/react/index.d.ts",
+        "default": "./dist/esm/react/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/react/index.d.cts",
+        "default": "./dist/cjs/react/index.cjs"
+      }
+    },
+    "./pixi": {
+      "import": {
+        "types": "./dist/esm/pixi/index.d.ts",
+        "default": "./dist/esm/pixi/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/pixi/index.d.cts",
+        "default": "./dist/cjs/pixi/index.cjs"
+      }
+    },
+    "./pixi/react": {
+      "import": {
+        "types": "./dist/esm/pixi/react.d.ts",
+        "default": "./dist/esm/pixi/react.js"
+      },
+      "require": {
+        "types": "./dist/cjs/pixi/react.d.cts",
+        "default": "./dist/cjs/pixi/react.cjs"
+      }
+    },
+    "./pixi/pixi-react": {
+      "import": {
+        "types": "./dist/esm/pixi/pixi-react.d.ts",
+        "default": "./dist/esm/pixi/pixi-react.js"
+      },
+      "require": {
+        "types": "./dist/cjs/pixi/pixi-react.d.cts",
+        "default": "./dist/cjs/pixi/pixi-react.cjs"
+      }
+    },
+    "./r3f": {
+      "import": {
+        "types": "./dist/esm/r3f/index.d.ts",
+        "default": "./dist/esm/r3f/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/r3f/index.d.cts",
+        "default": "./dist/cjs/r3f/index.cjs"
+      }
+    },
+    "./babylon": {
+      "import": {
+        "types": "./dist/esm/babylon/index.d.ts",
+        "default": "./dist/esm/babylon/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/babylon/index.d.cts",
+        "default": "./dist/cjs/babylon/index.cjs"
+      }
+    },
+    "./babylon/havok": {
+      "import": {
+        "types": "./dist/esm/babylon/havok.d.ts",
+        "default": "./dist/esm/babylon/havok.js"
+      },
+      "require": {
+        "types": "./dist/cjs/babylon/havok.d.cts",
+        "default": "./dist/cjs/babylon/havok.cjs"
+      }
+    },
+    "./styles.css": "./dist/styles.css",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "CHANGELOG.md",
+    "CONTRIBUTING.md",
+    "SECURITY.md",
+    "LICENSE",
+    "README.md",
+    "docs/API.md",
+    "docs/ARCHITECTURE.md"
+  ],
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "clean": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\"",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "lint:docs": "markdownlint-cli2 README.md CONTRIBUTING.md SECURITY.md CODE_OF_CONDUCT.md CHANGELOG.md AGENTS.md \"docs/**/*.md\" \"!docs/node_modules/**\" \"!docs/dist/**\" .github/PULL_REQUEST_TEMPLATE.md",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "pnpm run test:unit && pnpm run test:browser",
+    "test:unit": "vitest run --config vitest.config.ts",
+    "test:browser": "vitest run --config vitest.browser.config.ts",
+    "coverage": "vitest run --config vitest.config.ts --coverage && pnpm run test:browser",
+    "package:check": "publint && attw --pack . --profile node16 --exclude-entrypoints ./styles.css",
+    "smoke:consumer": "node scripts/consumer-smoke.mjs",
+    "docs:dev": "pnpm --filter game-mount-docs dev",
+    "docs:build": "pnpm --filter game-mount-docs build",
+    "docs:check": "pnpm --filter game-mount-docs check",
+    "verify": "pnpm run lint && pnpm run lint:docs && pnpm run typecheck && pnpm run coverage && pnpm run build && pnpm run package:check && pnpm run smoke:consumer",
+    "prepack": "node scripts/build.mjs",
+    "prepare": "simple-git-hooks"
+  },
+  "peerDependencies": {
+    "@babylonjs/core": "^7.0.0 || ^8.0.0 || ^9.0.0",
+    "@babylonjs/havok": "^1.0.0",
+    "@pixi/react": "^8.0.5",
+    "@react-three/fiber": "^9.0.0",
+    "pixi.js": "^8.0.0",
+    "react": "^18 || ^19",
+    "reactylon": "^3.0.0",
+    "three": ">=0.160.0"
+  },
+  "peerDependenciesMeta": {
+    "@babylonjs/core": {
+      "optional": true
+    },
+    "@babylonjs/havok": {
+      "optional": true
+    },
+    "@pixi/react": {
+      "optional": true
+    },
+    "@react-three/fiber": {
+      "optional": true
+    },
+    "pixi.js": {
+      "optional": true
+    },
+    "react": {
+      "optional": true
+    },
+    "reactylon": {
+      "optional": true
+    },
+    "three": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@arethetypeswrong/cli": "0.18.5",
+    "@babylonjs/core": "9.29.0",
+    "@babylonjs/havok": "1.3.14",
+    "@biomejs/biome": "2.5.15",
+    "@commitlint/cli": "21.2.3",
+    "@commitlint/config-conventional": "21.2.3",
+    "@pixi/react": "8.0.5",
+    "@react-three/fiber": "9.8.1",
+    "@testing-library/react": "16.3.3",
+    "@types/node": "24.13.3",
+    "@types/react": "19.2.17",
+    "@types/react-dom": "19.2.3",
+    "@types/three": "0.186.0",
+    "@vitejs/plugin-react": "6.0.4",
+    "@vitest/browser": "4.1.10",
+    "@vitest/browser-playwright": "4.1.10",
+    "@vitest/coverage-v8": "4.1.10",
+    "jsdom": "29.1.1",
+    "lint-staged": "17.6.0",
+    "markdownlint-cli2": "0.23.3",
+    "pixi.js": "8.22.0",
+    "playwright": "1.61.1",
+    "publint": "0.3.25",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "reactylon": "3.5.8",
+    "simple-git-hooks": "2.14.0",
+    "three": "0.186.1",
+    "typescript": "7.0.2",
+    "vite": "8.1.5",
+    "vitest": "4.1.10"
+  },
+  "simple-git-hooks": {
+    "pre-commit": "pnpm exec lint-staged",
+    "commit-msg": "pnpm exec commitlint --edit $1"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,mjs,cjs,json}": [
+      "biome check --write --no-errors-on-unmatched"
+    ],
+    "*.md": [
+      "markdownlint-cli2"
+    ]
+  }
+}

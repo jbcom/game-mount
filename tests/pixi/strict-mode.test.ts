@@ -1,10 +1,6 @@
 /**
- * tests/strict-mode.test.ts — the fresh-canvas-per-Application contract.
- *
- * Lifted from illinois-jim-and-the-shrine-of-catastrophe's
- * tests/browser/pixiStrictMode.test.ts (adapted from real-Chromium to this
- * package's jsdom+mock harness; the WebGL-limit assertions that need a
- * real GPU stay in illinois-jim).
+ * The fresh-canvas-per-Application contract, against the Pixi mock. The real-WebGL version of
+ * this guarantee is tests/browser/pixi-react-mount.test.tsx.
  *
  * Regression it pins: React StrictMode double-mounts effects (mount →
  * cleanup → mount). The first mount initialises a Pixi Application
@@ -24,28 +20,28 @@
  * mount on the same host must mint a NEW canvas.
  */
 
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { __mockState, pixiMock } from './_pixi-mock';
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { __mockState, pixiMock } from "./_pixi-mock";
 
-vi.mock('pixi.js', () => pixiMock());
+vi.mock("pixi.js", () => pixiMock());
 
-import { mountPixi } from '../src/index';
+import { mountPixi } from "../../src/pixi/index";
 
 function makeHost(): HTMLDivElement {
-  const host = document.createElement('div');
-  Object.defineProperty(host, 'clientWidth', { value: 320, configurable: true });
-  Object.defineProperty(host, 'clientHeight', { value: 180, configurable: true });
+  const host = document.createElement("div");
+  Object.defineProperty(host, "clientWidth", { value: 320, configurable: true });
+  Object.defineProperty(host, "clientHeight", { value: 180, configurable: true });
   document.body.appendChild(host);
   return host;
 }
 
 beforeEach(() => {
   __mockState.reset();
-  document.body.innerHTML = '';
+  document.body.innerHTML = "";
 });
 
-describe('Pixi mount under StrictMode-style remounts', () => {
-  it('reusing the host (not the canvas) across mounts yields a working mount', async () => {
+describe("Pixi mount under StrictMode-style remounts", () => {
+  it("reusing the host (not the canvas) across mounts yields a working mount", async () => {
     const host = makeHost();
 
     // First mount: mountPixi mints its own canvas inside the host.
@@ -75,7 +71,7 @@ describe('Pixi mount under StrictMode-style remounts', () => {
     host.remove();
   });
 
-  it('a fresh host per mount is always safe', async () => {
+  it("a fresh host per mount is always safe", async () => {
     const host = makeHost();
     const r1 = await mountPixi({ container: host });
     expect(r1.app).toBeTruthy();

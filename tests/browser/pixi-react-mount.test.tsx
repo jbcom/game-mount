@@ -1,14 +1,14 @@
-// Real-Chromium gate for @arcade-cabinet/pixi-mount/pixi-react: a real @pixi/react Application on a
+// Real-Chromium gate for game-mount/pixi/pixi-react: a real @pixi/react Application on a
 // real WebGL context under React StrictMode. jsdom cannot provide either, and the failure this guards
 // against (StrictMode's mount, cleanup, mount cycle booting the second Application onto a lost
 // context, a black canvas) only exists with a real context. Runs through vitest.browser.config.ts;
 // install the browser with `pnpm exec playwright install chromium`.
-import { extend } from '@pixi/react';
-import { Graphics } from 'pixi.js';
-import { StrictMode } from 'react';
-import { createRoot, type Root } from 'react-dom/client';
-import { afterEach, beforeEach, expect, test, vi } from 'vitest';
-import { PixiReactMount, type PixiReactMountHandle } from '../../src/pixi-react';
+import { extend } from "@pixi/react";
+import { Graphics } from "pixi.js";
+import { StrictMode } from "react";
+import { createRoot, type Root } from "react-dom/client";
+import { afterEach, beforeEach, expect, test, vi } from "vitest";
+import { PixiReactMount, type PixiReactMountHandle } from "../../src/pixi/pixi-react";
 
 extend({ Graphics });
 
@@ -42,11 +42,11 @@ function renderStage(mounted: boolean): void {
           key={generation}
           className="fixture-canvas"
           background={0x102030}
-          maxResolution={2}
+          quality={{ maxDpr: 2, antialias: true }}
           resizeMode="observer"
           onReady={(handle) => {
             const contextLosses = { count: 0 };
-            handle.canvas.addEventListener('webglcontextlost', () => {
+            handle.canvas.addEventListener("webglcontextlost", () => {
               contextLosses.count += 1;
             });
             current = handle;
@@ -68,7 +68,7 @@ function renderStage(mounted: boolean): void {
           />
         </PixiReactMount>
       ) : null}
-    </StrictMode>,
+    </StrictMode>
   );
 }
 
@@ -81,7 +81,7 @@ function liveApplications(): number {
 
 function glContextIsLive(canvas: HTMLCanvasElement): boolean {
   // Pixi already created the context on this canvas; getContext hands the same one back.
-  const gl = canvas.getContext('webgl2') ?? canvas.getContext('webgl');
+  const gl = canvas.getContext("webgl2") ?? canvas.getContext("webgl");
   return gl !== null && !gl.isContextLost();
 }
 
@@ -90,8 +90,8 @@ beforeEach(() => {
   ready = [];
   resizes = [];
   current = null;
-  stage = document.createElement('div');
-  stage.style.cssText = 'width:640px;height:360px;position:relative;';
+  stage = document.createElement("div");
+  stage.style.cssText = "width:640px;height:360px;position:relative;";
   document.body.append(stage);
   root = createRoot(stage);
 });
@@ -101,16 +101,16 @@ afterEach(() => {
   stage.remove();
 });
 
-test('StrictMode keeps one healthy Application and remounts on a fresh canvas', async () => {
+test("StrictMode keeps one healthy Application and remounts on a fresh canvas", async () => {
   renderStage(true);
   await vi.waitFor(() => expect(ready.length).toBeGreaterThan(0), { timeout: 10_000 });
-  await vi.waitFor(() => expect(stage.querySelectorAll('canvas')).toHaveLength(1));
+  await vi.waitFor(() => expect(stage.querySelectorAll("canvas")).toHaveLength(1));
 
   const first = ready.at(-1);
   expect(first).toBeDefined();
   if (!first) return;
   expect(liveApplications()).toBe(1);
-  expect(stage.querySelector('canvas')).toBe(first.handle.canvas);
+  expect(stage.querySelector("canvas")).toBe(first.handle.canvas);
   expect(glContextIsLive(first.handle.canvas)).toBe(true);
   expect(first.contextLosses.count).toBe(0);
   expect(first.handle.width).toBe(640);
@@ -125,11 +125,11 @@ test('StrictMode keeps one healthy Application and remounts on a fresh canvas', 
       callbackHeight: 311,
       rendererWidth: 577,
       rendererHeight: 311,
-    }),
+    })
   );
 
   renderStage(false);
-  await vi.waitFor(() => expect(stage.querySelectorAll('canvas')).toHaveLength(0));
+  await vi.waitFor(() => expect(stage.querySelectorAll("canvas")).toHaveLength(0));
   await vi.waitFor(() => expect(liveApplications()).toBe(0));
 
   generation += 1;
@@ -138,7 +138,7 @@ test('StrictMode keeps one healthy Application and remounts on a fresh canvas', 
   await vi.waitFor(() => expect(ready.length).toBeGreaterThan(readyBeforeRemount), {
     timeout: 10_000,
   });
-  await vi.waitFor(() => expect(stage.querySelectorAll('canvas')).toHaveLength(1));
+  await vi.waitFor(() => expect(stage.querySelectorAll("canvas")).toHaveLength(1));
 
   const second = ready.at(-1);
   expect(second).toBeDefined();

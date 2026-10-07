@@ -1,93 +1,49 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
-import {
-  isMobileDevice,
-  mobileEngineOptions,
-  mobileHardwareScalingLevel,
-} from '../src/mobileEngineOptions';
+import { describe, expect, it } from "vitest";
+import { babylonEngineOptions } from "../../src/babylon/index.js";
+import { QUALITY_TIERS } from "../../src/index.js";
 
-function mockUserAgent(ua: string) {
-  vi.stubGlobal('navigator', { userAgent: ua });
-}
+const PHONE = { userAgent: "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X)" };
+const DESKTOP = { userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Chrome/150" };
 
-function mockDevicePixelRatio(ratio: number) {
-  vi.stubGlobal('window', { ...globalThis.window, devicePixelRatio: ratio });
-}
-
-describe('isMobileDevice', () => {
-  afterEach(() => vi.unstubAllGlobals());
-
-  it('detects iPhone UA as mobile', () => {
-    mockUserAgent('Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X)');
-    expect(isMobileDevice()).toBe(true);
+describe("babylonEngineOptions", () => {
+  it("caps the ratio through Babylon's own limitDeviceRatio, with adaptToDeviceRatio on", () => {
+    const options = babylonEngineOptions({ navigator: DESKTOP });
+    expect(options.adaptToDeviceRatio).toBe(true);
+    expect(options.limitDeviceRatio).toBe(QUALITY_TIERS.high.maxDpr);
+    expect(options.antialias).toBe(true);
   });
 
-  it('detects Android UA as mobile', () => {
-    mockUserAgent('Mozilla/5.0 (Linux; Android 14)');
-    expect(isMobileDevice()).toBe(true);
+  it("desktop: high-performance GPU with a stencil buffer", () => {
+    const options = babylonEngineOptions({ navigator: DESKTOP });
+    expect(options.powerPreference).toBe("high-performance");
+    expect(options.stencil).toBe(true);
+    expect(options.preserveDrawingBuffer).toBe(false);
   });
 
-  it('does not flag desktop Chrome UA as mobile', () => {
-    mockUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Chrome/120');
-    expect(isMobileDevice()).toBe(false);
-  });
-});
-
-describe('mobileEngineOptions', () => {
-  afterEach(() => vi.unstubAllGlobals());
-
-  it('prefers high-performance + stencil/AA on desktop', () => {
-    mockUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Chrome/120');
-    mockDevicePixelRatio(1);
-    const opts = mobileEngineOptions();
-    expect(opts.powerPreference).toBe('high-performance');
-    expect(opts.stencil).toBe(true);
-    expect(opts.antialias).toBe(true);
-    expect(opts.adaptToDeviceRatio).toBe(true);
+  it("mobile: low tier by default, low-power GPU, no stencil", () => {
+    const options = babylonEngineOptions({ navigator: PHONE });
+    expect(options.powerPreference).toBe("low-power");
+    expect(options.stencil).toBe(false);
+    expect(options.limitDeviceRatio).toBe(1);
+    expect(options.antialias).toBe(false);
   });
 
-  it('prefers low-power + disables stencil on mobile', () => {
-    mockUserAgent('Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X)');
-    mockDevicePixelRatio(1);
-    const opts = mobileEngineOptions();
-    expect(opts.powerPreference).toBe('low-power');
-    expect(opts.stencil).toBe(false);
-    expect(opts.adaptToDeviceRatio).toBe(false);
+  it("an explicit quality wins over detection", () => {
+    const options = babylonEngineOptions({ navigator: PHONE, quality: QUALITY_TIERS.medium });
+    expect(options.limitDeviceRatio).toBe(1.5);
+    expect(options.antialias).toBe(true);
   });
 
-  it('disables antialias on high-DPI mobile', () => {
-    mockUserAgent('Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X)');
-    mockDevicePixelRatio(3);
-    const opts = mobileEngineOptions();
-    expect(opts.antialias).toBe(false);
+  it("overrides are spread last", () => {
+    const options = babylonEngineOptions({
+      navigator: PHONE,
+      overrides: { preserveDrawingBuffer: true, stencil: true },
+    });
+    expect(options.preserveDrawingBuffer).toBe(true);
+    expect(options.stencil).toBe(true);
   });
 
-  it('lets overrides win over the mobile-aware defaults', () => {
-    mockUserAgent('Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X)');
-    mockDevicePixelRatio(1);
-    const opts = mobileEngineOptions({ preserveDrawingBuffer: true, stencil: true });
-    expect(opts.preserveDrawingBuffer).toBe(true);
-    expect(opts.stencil).toBe(true);
-  });
-});
-
-describe('mobileHardwareScalingLevel', () => {
-  afterEach(() => vi.unstubAllGlobals());
-
-  it('returns 1 (no scaling) on desktop', () => {
-    mockUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Chrome/120');
-    mockDevicePixelRatio(3);
-    expect(mobileHardwareScalingLevel()).toBe(1);
-  });
-
-  it('returns 1 on mobile with low DPR', () => {
-    mockUserAgent('Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X)');
-    mockDevicePixelRatio(2);
-    expect(mobileHardwareScalingLevel()).toBe(1);
-  });
-
-  it('scales down on mobile with high DPR', () => {
-    mockUserAgent('Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X)');
-    mockDevicePixelRatio(3);
-    expect(mobileHardwareScalingLevel()).toBe(1.5);
+  it("reads the global navigator when none is given", () => {
+    expect(babylonEngineOptions().powerPreference).toBe("high-performance");
   });
 });

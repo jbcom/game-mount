@@ -1,13 +1,7 @@
-export { getSafeAreaInsets, resetSafeAreaCache, type SafeAreaInsets } from './getSafeAreaInsets.js';
-export {
-  isMobileDevice,
-  mobileEngineOptions,
-  mobileHardwareScalingLevel,
-} from './mobileEngineOptions.js';
-export { SceneRoot } from './SceneRoot.js';
-export { useBeforeRender } from './useBeforeRender.js';
-export {
-  _resetHavokPhysicsCache,
-  type UseHavokPhysicsResult,
-  useHavokPhysics,
-} from './useHavokPhysics.js';
+/**
+ * game-mount/babylon: the Babylon.js adapter for Reactylon. Needs `react`, `@babylonjs/core` and
+ * `reactylon`. Havok physics is the separate `game-mount/babylon/havok` entry point.
+ */
+export { type BabylonEngineOptionsInput, babylonEngineOptions } from "./engineOptions.js";
+export { SceneRoot, type SceneRootProps } from "./SceneRoot.js";
+export { MAX_FRAME_DELTA, useBeforeRender } from "./useBeforeRender.js";

@@ -1,32 +1,26 @@
 /**
- * CabinetCanvas contract (jsdom — the r3f `<Canvas>` is mocked to a
- * prop-recording passthrough, since jsdom has no WebGL; the real-browser
- * mount is exercised by the host repo's tests/browser/island-viewport-mount
- * suite, which mounts IslandViewport through this package against headless
- * Chromium).
+ * GameCanvas contract in jsdom: the r3f `<Canvas>` is mocked to a prop-recording passthrough,
+ * since jsdom has no WebGL.
  *
  * Pins:
  *  - `active` gates the mount entirely (no host div, no Canvas).
- *  - The host div carries the .cabinet-canvas-host class AND the inline
- *    contract style (min-height: 0 — the #1 footgun — flex:1, 100%/100%),
- *    plus caller-provided hostProps (class merge, data-* attributes).
- *  - Quality tier maps to dpr [1, maxDpr] + gl.antialias; ACES/sRGB baked.
- *  - onCreated wiring registers webglcontextlost/restored listeners that
- *    preventDefault (blobolines' recovery contract) and route to the
- *    caller's handlers — including handlers swapped in AFTER mount (the
- *    ref-forwarding pin), falling back to console.warn.
+ *  - The host div carries the .game-canvas-host class AND the inline contract style (min-height: 0,
+ *    flex: 1, 100%/100%), plus caller-provided hostProps (class merge, data-* attributes).
+ *  - Quality maps to dpr [1, maxDpr] + gl.antialias; ACES/sRGB are set.
+ *  - onCreated registers webglcontextlost/restored listeners that preventDefault and route to the
+ *    caller's handlers, including handlers swapped in after mount, falling back to console.warn.
  */
 
-import type { CanvasProps, RootState } from '@react-three/fiber';
-import { cleanup, render } from '@testing-library/react';
-import { useEffect } from 'react';
-import { ACESFilmicToneMapping, SRGBColorSpace } from 'three';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import type { CanvasProps, RootState } from "@react-three/fiber";
+import { cleanup, render } from "@testing-library/react";
+import { useEffect } from "react";
+import { ACESFilmicToneMapping, SRGBColorSpace } from "three";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 const recordedCanvasProps: CanvasProps[] = [];
 let mountCount = 0;
 
-vi.mock('@react-three/fiber', () => ({
+vi.mock("@react-three/fiber", () => ({
   Canvas: (props: CanvasProps) => {
     recordedCanvasProps.push(props);
     useEffect(() => {
@@ -36,9 +30,9 @@ vi.mock('@react-three/fiber', () => ({
   },
 }));
 
-// Import AFTER the mock so CabinetCanvas binds to the stub.
-const { CabinetCanvas } = await import('../src/CabinetCanvas.js');
-const { CABINET_CANVAS_HOST_CLASS } = await import('../src/hostStyle.js');
+// Import AFTER the mock so GameCanvas binds to the stub.
+const { GameCanvas } = await import("../../src/r3f/GameCanvas.js");
+const { GAME_CANVAS_HOST_CLASS, QUALITY_TIERS } = await import("../../src/index.js");
 
 afterEach(() => {
   cleanup();
@@ -49,7 +43,7 @@ afterEach(() => {
 
 function lastCanvasProps(): CanvasProps {
   const props = recordedCanvasProps.at(-1);
-  if (!props) throw new Error('Canvas never rendered');
+  if (!props) throw new Error("Canvas never rendered");
   return props;
 }
 
@@ -57,58 +51,84 @@ function lastCanvasProps(): CanvasProps {
  * canvas element, so the context-loss listeners attach to something we can
  * dispatch events on. */
 function createdWithCanvas(): HTMLCanvasElement {
-  const canvas = document.createElement('canvas');
+  const canvas = document.createElement("canvas");
   const state = { gl: { domElement: canvas } } as unknown as RootState;
   lastCanvasProps().onCreated?.(state);
   return canvas;
 }
 
-describe('CabinetCanvas', () => {
-  it('renders nothing while inactive — no host div, no Canvas', () => {
+describe("GameCanvas", () => {
+  it("renders nothing while inactive — no host div, no Canvas", () => {
     const { container } = render(
-      <CabinetCanvas active={false}>
+      <GameCanvas active={false}>
         <group />
-      </CabinetCanvas>,
+      </GameCanvas>
     );
     expect(container.firstChild).toBeNull();
     expect(recordedCanvasProps).toHaveLength(0);
   });
 
-  it('renders the host div with the contract class + inline style (min-height:0)', () => {
+  it("renders the host div with the contract class + inline style (min-height:0)", () => {
     const { container } = render(
-      <CabinetCanvas active>
+      <GameCanvas active>
         <group />
-      </CabinetCanvas>,
+      </GameCanvas>
     );
     const host = container.firstChild as HTMLElement;
-    expect(host.classList.contains(CABINET_CANVAS_HOST_CLASS)).toBe(true);
-    expect(host.style.minHeight).toBe('0px');
-    expect(host.style.flex).toBe('1 1 0%');
-    expect(host.style.width).toBe('100%');
-    expect(host.style.height).toBe('100%');
+    expect(host.classList.contains(GAME_CANVAS_HOST_CLASS)).toBe(true);
+    expect(host.style.minHeight).toBe("0px");
+    expect(host.style.flex).toBe("1 1 0%");
+    expect(host.style.width).toBe("100%");
+    expect(host.style.height).toBe("100%");
     expect(host.querySelector('[data-testid="mock-canvas"]')).not.toBeNull();
   });
 
-  it('merges hostProps: extra class + data attributes land on the host div', () => {
+  it("merges hostProps: extra class + data attributes land on the host div", () => {
     const { container } = render(
-      <CabinetCanvas active hostProps={{ className: 'ww-fx', 'data-impact': 'odd' }}>
+      <GameCanvas active hostProps={{ className: "with-hud", "data-layer": "world" }}>
         <group />
-      </CabinetCanvas>,
+      </GameCanvas>
     );
     const host = container.firstChild as HTMLElement;
-    expect(host.classList.contains(CABINET_CANVAS_HOST_CLASS)).toBe(true);
-    expect(host.classList.contains('ww-fx')).toBe(true);
-    expect(host.getAttribute('data-impact')).toBe('odd');
+    expect(host.classList.contains(GAME_CANVAS_HOST_CLASS)).toBe(true);
+    expect(host.classList.contains("with-hud")).toBe(true);
+    expect(host.getAttribute("data-layer")).toBe("world");
   });
 
-  it('maps the quality tier to dpr [1, maxDpr] + antialias, with ACES/sRGB baked', () => {
-    render(
-      <CabinetCanvas active quality={{ maxDpr: 1.25, antialias: false }} shadows>
+  it("hostProps.style overrides the contract per property and keeps the rest", () => {
+    const { container } = render(
+      <GameCanvas active hostProps={{ style: { position: "absolute", inset: 0 } }}>
         <group />
-      </CabinetCanvas>,
+      </GameCanvas>
+    );
+    const host = container.firstChild as HTMLElement;
+    expect(host.style.position).toBe("absolute");
+    expect(host.style.inset).toBe("0px");
+    expect(host.style.minHeight).toBe("0px");
+  });
+
+  it("maps the quality tier to dpr [1, maxDpr] + antialias, with ACES/sRGB baked", () => {
+    render(
+      <GameCanvas active quality={{ maxDpr: 1.25, antialias: false }} shadows>
+        <group />
+      </GameCanvas>
     );
     const props = lastCanvasProps();
     expect(props.dpr).toEqual([1, 1.25]);
+    // Defaults to the high tier; a sub-1 cap moves the floor down with it.
+    render(
+      <GameCanvas active>
+        <group />
+      </GameCanvas>
+    );
+    expect(lastCanvasProps().dpr).toEqual([1, QUALITY_TIERS.high.maxDpr]);
+    expect((lastCanvasProps().gl as Record<string, unknown>).antialias).toBe(true);
+    render(
+      <GameCanvas active quality={{ maxDpr: 0.75, antialias: false }}>
+        <group />
+      </GameCanvas>
+    );
+    expect(lastCanvasProps().dpr).toEqual([0.75, 0.75]);
     const gl = props.gl as Record<string, unknown>;
     expect(gl.antialias).toBe(false);
     expect(gl.toneMapping).toBe(ACESFilmicToneMapping);
@@ -119,49 +139,49 @@ describe('CabinetCanvas', () => {
     expect(props.shadows).toBe(true);
   });
 
-  it('preserveDrawingBuffer + toneMappingExposure props reach the gl config', () => {
+  it("preserveDrawingBuffer + toneMappingExposure props reach the gl config", () => {
     render(
-      <CabinetCanvas active preserveDrawingBuffer toneMappingExposure={1.1}>
+      <GameCanvas active preserveDrawingBuffer toneMappingExposure={1.1}>
         <group />
-      </CabinetCanvas>,
+      </GameCanvas>
     );
     const gl = lastCanvasProps().gl as Record<string, unknown>;
     expect(gl.preserveDrawingBuffer).toBe(true);
     expect(gl.toneMappingExposure).toBe(1.1);
   });
 
-  it('context loss: preventDefaults and routes to onContextLost/onContextRestored with the canvas', () => {
+  it("context loss: preventDefaults and routes to onContextLost/onContextRestored with the canvas", () => {
     const onLost = vi.fn();
     const onRestored = vi.fn();
     render(
-      <CabinetCanvas active onContextLost={onLost} onContextRestored={onRestored}>
+      <GameCanvas active onContextLost={onLost} onContextRestored={onRestored}>
         <group />
-      </CabinetCanvas>,
+      </GameCanvas>
     );
     const canvas = createdWithCanvas();
 
-    const lost = new Event('webglcontextlost', { cancelable: true });
+    const lost = new Event("webglcontextlost", { cancelable: true });
     canvas.dispatchEvent(lost);
     // preventDefault is the recovery contract: it tells the browser we'll
     // restore, so the canvas doesn't stay permanently blank.
     expect(lost.defaultPrevented).toBe(true);
     expect(onLost).toHaveBeenCalledWith(canvas);
 
-    canvas.dispatchEvent(new Event('webglcontextrestored'));
+    canvas.dispatchEvent(new Event("webglcontextrestored"));
     expect(onRestored).toHaveBeenCalledWith(canvas);
   });
 
-  it('context restore forces a real remount, not just a callback — preventDefault alone leaves the GL context empty', async () => {
+  it("context restore forces a real remount, not just a callback — preventDefault alone leaves the GL context empty", async () => {
     render(
-      <CabinetCanvas active>
+      <GameCanvas active>
         <group />
-      </CabinetCanvas>,
+      </GameCanvas>
     );
     const canvas = createdWithCanvas();
     expect(mountCount).toBe(1);
 
-    canvas.dispatchEvent(new Event('webglcontextlost', { cancelable: true }));
-    canvas.dispatchEvent(new Event('webglcontextrestored'));
+    canvas.dispatchEvent(new Event("webglcontextlost", { cancelable: true }));
+    canvas.dispatchEvent(new Event("webglcontextrestored"));
 
     // The remount's state update happens inside a native DOM event
     // listener, outside React's synchronous act() batching — flush a tick
@@ -174,50 +194,50 @@ describe('CabinetCanvas', () => {
     expect(mountCount).toBe(2);
   });
 
-  it('context loss without handlers: preventDefaults and warns', () => {
-    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+  it("context loss without handlers: preventDefaults and warns", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     render(
-      <CabinetCanvas active>
+      <GameCanvas active>
         <group />
-      </CabinetCanvas>,
+      </GameCanvas>
     );
     const canvas = createdWithCanvas();
 
-    const lost = new Event('webglcontextlost', { cancelable: true });
+    const lost = new Event("webglcontextlost", { cancelable: true });
     canvas.dispatchEvent(lost);
     expect(lost.defaultPrevented).toBe(true);
-    canvas.dispatchEvent(new Event('webglcontextrestored'));
+    canvas.dispatchEvent(new Event("webglcontextrestored"));
     expect(warn).toHaveBeenCalledTimes(2);
   });
 
-  it('handlers swapped in after mount are still reached (ref forwarding)', () => {
+  it("handlers swapped in after mount are still reached (ref forwarding)", () => {
     const first = vi.fn();
     const second = vi.fn();
     const { rerender } = render(
-      <CabinetCanvas active onContextLost={first}>
+      <GameCanvas active onContextLost={first}>
         <group />
-      </CabinetCanvas>,
+      </GameCanvas>
     );
     const canvas = createdWithCanvas();
 
     rerender(
-      <CabinetCanvas active onContextLost={second}>
+      <GameCanvas active onContextLost={second}>
         <group />
-      </CabinetCanvas>,
+      </GameCanvas>
     );
-    canvas.dispatchEvent(new Event('webglcontextlost', { cancelable: true }));
+    canvas.dispatchEvent(new Event("webglcontextlost", { cancelable: true }));
     expect(first).not.toHaveBeenCalled();
     expect(second).toHaveBeenCalledWith(canvas);
   });
 
-  it('chains a caller-supplied onCreated after wiring the listeners', () => {
+  it("chains a caller-supplied onCreated after wiring the listeners", () => {
     const onCreated = vi.fn();
     render(
-      <CabinetCanvas active onCreated={onCreated}>
+      <GameCanvas active onCreated={onCreated}>
         <group />
-      </CabinetCanvas>,
+      </GameCanvas>
     );
-    const canvas = document.createElement('canvas');
+    const canvas = document.createElement("canvas");
     const state = { gl: { domElement: canvas } } as unknown as RootState;
     lastCanvasProps().onCreated?.(state);
     expect(onCreated).toHaveBeenCalledWith(state);

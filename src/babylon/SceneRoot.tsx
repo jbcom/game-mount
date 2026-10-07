@@ -1,48 +1,49 @@
-import type { TransformNode } from '@babylonjs/core/Meshes/transformNode';
-import { TransformNode as BJSTransformNode } from '@babylonjs/core/Meshes/transformNode.js';
-import { type ReactNode, useEffect, useState } from 'react';
-import { useScene } from 'reactylon';
+import { TransformNode } from "@babylonjs/core/Meshes/transformNode.js";
+import { type ReactNode, useEffect, useState } from "react";
+import { useScene } from "reactylon";
+import { isActivePhase } from "../core/phase.js";
+
+export interface SceneRootProps<T extends string | number> {
+  /** The game's current phase. */
+  activeKey: T;
+  /** The phase, or phases, this subtree belongs to. */
+  matchKey: T | readonly T[];
+  /** Renders the subtree; hang meshes off `root` so disposing it disposes them. */
+  children: (root: TransformNode) => ReactNode;
+}
 
 /**
- * Mounts/unmounts a discriminant-scoped TransformNode and its children
- * when `activeKey === matchKey`. Sub-scenes hang meshes off the root
- * TransformNode and rely on the dispose chain to clean up on exit.
+ * A phase-scoped subtree of one Babylon scene. While `activeKey` matches `matchKey` (see
+ * `isActivePhase`) it creates a `TransformNode` root and renders `children(root)`; when the phase
+ * ends it disposes the root and everything parented to it.
  *
- * The Babylon Scene + Engine are expected to remain mounted at a
- * higher level (e.g. a `<Engine><Scene>` wrapper) — this component only
- * owns the per-key mesh subtree, not the scene itself.
- *
- * Generalized over any discriminant key (menu/gameplay/game-over
- * "screens" sharing one Engine, encounter phases, etc.) — not tied to
- * any particular game's phase union.
+ * The Engine and Scene stay mounted above it (Reactylon's `<Engine><Scene>`), so moving between,
+ * say, a title screen and a level swaps subtrees without recreating the GPU context.
  */
 export function SceneRoot<T extends string | number>({
   activeKey,
   matchKey,
   children,
-}: {
-  activeKey: T;
-  matchKey: T;
-  children: (root: TransformNode) => ReactNode;
-}) {
+}: SceneRootProps<T>): ReactNode {
   const scene = useScene();
   const [root, setRoot] = useState<TransformNode | null>(null);
 
-  const isActive = activeKey === matchKey;
+  const isActive = isActivePhase(activeKey, matchKey);
+  // A stable string, so an inline array literal for matchKey does not recreate the root every render.
+  const rootName = `scene-root-${Array.isArray(matchKey) ? matchKey.join("+") : String(matchKey)}`;
 
   useEffect(() => {
-    // Inactive (or no scene yet): nothing to mount. Any previously-active
-    // root is torn down by that earlier effect run's own cleanup below —
-    // this branch never needs to reach back into state itself.
-    if (!scene || !isActive) return;
-    const node = new BJSTransformNode(`scene-root-${String(matchKey)}`, scene);
+    // Inactive, or no scene yet: nothing to create. A root from an earlier active run was already
+    // disposed by that run's cleanup.
+    if (!scene || !isActive) return undefined;
+    const node = new TransformNode(rootName, scene);
     setRoot(node);
     return () => {
       node.dispose(false, true);
       setRoot(null);
     };
-  }, [isActive, matchKey, scene]);
+  }, [isActive, rootName, scene]);
 
   if (!isActive || !root) return null;
-  return <>{children(root)}</>;
+  return children(root);
 }

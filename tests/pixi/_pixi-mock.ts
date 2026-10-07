@@ -1,13 +1,7 @@
 /**
- * tests/_pixi-mock.ts — package-local pixi.js mock.
- *
- * Pixi.js can't run under jsdom (no WebGL). The mock mirrors the exact
- * surface mountPixi touches — Application init/destroy, renderer
- * resize + 'resize' event emission (Pixi 8's AbstractRenderer emits
- * 'resize' with logical screen dimensions after every resize), and
- * Filter.defaultOptions for the filter-resolution fix.
- *
- * Derived from on-the-ropes' tests/rendering/_pixi-mock.ts.
+ * A pixi.js mock for jsdom, which has no WebGL. It mirrors the exact surface the Pixi adapter
+ * touches: Application init/destroy, renderer resize and its 'resize' event (Pixi 8 emits it with
+ * the logical size after every resize), and Filter.defaultOptions for the filter-resolution fix.
  */
 
 export interface MockAppRecord {
@@ -73,12 +67,12 @@ export function pixiMock(): Record<string, unknown> {
           for (const fn of [...listeners]) fn(w, h);
         },
         on: (event: string, fn: (w: number, h: number) => void): void => {
-          if (event !== 'resize') return;
+          if (event !== "resize") return;
           listeners.push(fn);
           record.resizeListenerCount = listeners.length;
         },
         off: (event: string, fn: (w: number, h: number) => void): void => {
-          if (event !== 'resize') return;
+          if (event !== "resize") return;
           const idx = listeners.indexOf(fn);
           if (idx >= 0) listeners.splice(idx, 1);
           record.resizeListenerCount = listeners.length;
@@ -114,7 +108,7 @@ export function pixiMock(): Record<string, unknown> {
       if (this._record.destroyed) {
         // Real Pixi throws on double destroy — mountPixi must never reach
         // this line twice thanks to its idempotence guard + try/catch.
-        throw new Error('Application already destroyed');
+        throw new Error("Application already destroyed");
       }
       this._record.destroyed = true;
     }

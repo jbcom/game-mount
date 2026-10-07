@@ -1,34 +1,41 @@
-import type { CSSProperties } from 'react';
-
 /**
- * The `.cabinet-canvas-host` CSS contract — THE load-bearing piece of this
- * package. Generalized from welcoming-wilds' `.ww-canvas` rule, the cleanest
- * parent-sized (non-window) canvas chain in the fleet audit:
+ * The parent-sized host contract: the element a canvas mounts into fills its parent, and the
+ * renderer sizes itself from that element's box (a ResizeObserver), never from the window.
  *
- *   html,body { height: 100% }
- *     → #app { position: fixed; inset: 0; display: flex; flex-direction: column }
- *       → shell { flex: 1 }
- *         → .cabinet-canvas-host { flex: 1; width: 100%; height: 100%; min-height: 0 }
+ * A layout chain that satisfies it:
  *
- * `min-height: 0` is the #1 real-world footgun: a flex item's default
- * `min-height: auto` lets a `height: 100%` child refuse to shrink below its
- * content's intrinsic size, silently breaking any layout that later docks a
- * HUD panel beside/below the canvas. Every rule here is parent-derived —
- * zero vh/vw/window.innerWidth anywhere.
+ *   html, body { height: 100% }
+ *     → #root { position: fixed; inset: 0; display: flex; flex-direction: column }
+ *       → .screen { flex: 1 }
+ *         → .game-canvas-host { flex: 1; width: 100%; height: 100%; min-height: 0 }
  *
- * `display: flex` on the host makes r3f's own wrapper div (100%/100%) resolve
- * against a real box, so r3f's ResizeObserver does all the sizing work.
+ * `min-height: 0` is the rule people miss: a flex item's default `min-height: auto` lets a
+ * `height: 100%` child refuse to shrink below its content, so docking a HUD panel beside or below
+ * the canvas silently overflows. `display: flex` makes a renderer's own 100%-sized wrapper resolve
+ * against a real box. Nothing here reads `vh`, `vw` or `window.innerWidth`.
+ *
+ * The contract ships twice and the two are kept identical by a test: as this inline style object
+ * (no stylesheet import needed) and as `game-mount/styles.css`, which also styles the child canvas.
  */
-export const cabinetCanvasHostStyle: CSSProperties = {
-  position: 'relative',
-  flex: 1,
-  display: 'flex',
-  width: '100%',
-  height: '100%',
-  minHeight: 0,
-};
 
-/** Class name applied to the host div `CabinetCanvas` renders; the shipped
- * `styles.css` targets it. The inline `cabinetCanvasHostStyle` is applied
- * too, so the contract holds even without importing the stylesheet. */
-export const CABINET_CANVAS_HOST_CLASS = 'cabinet-canvas-host';
+/** The inline style of the host contract. Structurally a React `CSSProperties`. */
+export interface GameCanvasHostStyle {
+  readonly position: "relative";
+  readonly flex: number;
+  readonly display: "flex";
+  readonly width: "100%";
+  readonly height: "100%";
+  readonly minHeight: number;
+}
+
+export const gameCanvasHostStyle: GameCanvasHostStyle = Object.freeze({
+  position: "relative",
+  flex: 1,
+  display: "flex",
+  width: "100%",
+  height: "100%",
+  minHeight: 0,
+});
+
+/** The class `styles.css` targets; `GameCanvas` puts it on its host element. */
+export const GAME_CANVAS_HOST_CLASS = "game-canvas-host";
