@@ -8,6 +8,6 @@
     "check": "sourcey build"
   },
   "dependencies": {
-    "sourcey": "3.7.1"
+    "sourcey": "3.9.1"
   }
 }
