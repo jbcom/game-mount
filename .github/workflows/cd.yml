@@ -73,8 +73,8 @@ jobs:
       - if: steps.release.outputs.tag != ''
         run: pnpm install --frozen-lockfile
       - if: steps.release.outputs.tag != ''
-        run: pnpm exec playwright install --with-deps chromium
+        run: pnpm exec playwright install --with-deps --no-shell chromium
       - if: steps.release.outputs.tag != ''
-        run: pnpm verify
+        run: xvfb-run -a pnpm verify
       - if: steps.release.outputs.tag != ''
         run: npm publish --access public --provenance

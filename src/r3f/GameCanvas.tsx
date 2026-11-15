@@ -2,10 +2,9 @@ import type { CanvasProps, RootState } from "@react-three/fiber";
 import { Canvas } from "@react-three/fiber";
 import type { HTMLAttributes, ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
-import { ACESFilmicToneMapping, SRGBColorSpace } from "three";
-import { dprRange } from "../core/dpr.js";
 import { GAME_CANVAS_HOST_CLASS, gameCanvasHostStyle } from "../core/host.js";
 import { DEFAULT_QUALITY, type RenderQuality } from "../core/quality.js";
+import { renderPolicy } from "./renderPolicy.js";
 
 /** Host element attributes; `data-*` keys are allowed explicitly. */
 export type GameCanvasHostProps = HTMLAttributes<HTMLDivElement> & {
@@ -116,15 +115,7 @@ export function GameCanvas({
     >
       <Canvas
         key={remountKey}
-        dpr={[...dprRange(quality.maxDpr)]}
-        gl={{
-          antialias: quality.antialias,
-          powerPreference: "high-performance",
-          toneMapping: ACESFilmicToneMapping,
-          toneMappingExposure,
-          outputColorSpace: SRGBColorSpace,
-          preserveDrawingBuffer,
-        }}
+        {...renderPolicy(quality, preserveDrawingBuffer, toneMappingExposure)}
         onCreated={handleCreated}
         {...canvasProps}
       >

@@ -107,7 +107,7 @@ Use a browser bundler: @pixi/react 8.0.5's extensionless dependency import preve
 
 ## r3f: `game-mount/r3f`
 
-Requires React, Three and @react-three/fiber 9. `GameCanvas` fills its parent with an inline host contract and an r3f Canvas. `GameCanvasProps` extends Canvas props except `dpr` and `gl`:
+Requires React, Three and @react-three/fiber >=9.8.2. `GameCanvas` fills its parent with an inline host contract and an r3f Canvas. `GameCanvasProps` extends Canvas props except `dpr` and `gl`:
 
 | Prop | Default and behavior |
 | --- | --- |
@@ -120,6 +120,46 @@ Requires React, Three and @react-three/fiber 9. `GameCanvas` fills its parent wi
 | `hostProps?` | Div attributes, merged class name and overriding styles; `GameCanvasHostProps` supports `data-*` |
 
 The renderer uses ACES filmic tone mapping, sRGB output and high-performance power preference. Context loss calls `preventDefault`; restoration remounts the canvas. Keep persistent state outside scene children.
+
+### Explicit scene lifetime
+
+Use `ManagedGameCanvas` when a scene reads an external simulation that must outlive React cleanup.
+It owns one imperative R3F root and one ResizeObserver. It shares `GameCanvas`'s host, quality,
+rendering defaults and context recovery, and takes:
+
+| Prop | Behavior |
+| --- | --- |
+| `active`, `children`, `quality?`, `hostProps?` | Same host and quality contract as `GameCanvas` |
+| `preserveDrawingBuffer?`, `toneMappingExposure?` | Same renderer defaults as `GameCanvas` |
+| `onContextLost?`, `onContextRestored?` | Optional canvas callbacks; restore creates a fresh canvas |
+| `onMount` | Receives the root's `R3FMount` before configuration, even before the scene is ready |
+| `options?` | R3F root options such as camera, frameloop, shadows and onCreated; size, dpr and gl are owned here |
+| `onError?` | Configuration/retirement failures; defaults to console.error |
+
+The scene has its own React root: pass dependencies as props or provide context inside children.
+DOM attributes belong in `hostProps`. `GameCanvas` remains available for scenes using R3F's Canvas
+and its automatic React context bridge; its unmount is not an asynchronous disposal signal.
+
+`createR3FMount(canvas)` supplies the same ownership contract for imperative hosts. Its `R3FMount`
+has readonly `canvas` and `retiring`, `configure(options): Promise<void>`, `render(children): void`
+and `retire(): Promise<void>`. Configure before rendering; the caller owns sizing and events.
+
+Every retire call returns the same promise. It blocks further configuration/rendering, stops
+normal frame callbacks through public `setFrameloop("never")`, and resolves only after R3F's
+unmount callback, including React effect cleanup and renderer release. Keep simulation/world
+resources alive until that promise resolves. Pending renderer factories and asynchronous renderer
+disposal delay resolution; a factory that never settles also prevents retirement from completing.
+Do not call manual `advance()` against a retiring root.
+
+Save each handle from `onMount` by its canvas, including StrictMode and context-restore generations.
+Stop the presentation, await all their retire promises, then dispose shared simulation resources.
+React removal also retires the root idempotently. If the retirement call throws, its promise rejects and retains canvas ownership. R3F reports
+third-party cleanup errors it catches through console warnings; completion is not a guarantee
+that every renderer resource was successfully released.
+
+Never mix this owner with R3F's `Canvas`, `createRoot` or `unmountComponentAtNode` on the same canvas.
+A second owner is refused until retirement finishes. Prefer a fresh canvas after retirement because
+renderer release loses its WebGL context. No private R3F state is read or written.
 
 `AdaptiveResolution` takes `AdaptiveResolutionProps`: `maxDpr = 2`, `startDpr = 1.5`, `priority = 0` and `onUpdate?`. Place it inside GameCanvas and pass the same quality cap. It samples 60-frame windows with a two-second settling period and drives the shared ladder.
 
