@@ -259,3 +259,23 @@ it("skips a configured scene if the owner retires before the configuration conti
   await tick();
   expect(at(owners).render).not.toHaveBeenCalled();
 });
+
+it("retires the root if the owner callback throws", async () => {
+  const error = new Error("owner failed");
+  const report = vi.fn();
+  render(
+    <ManagedGameCanvas
+      active
+      onMount={() => {
+        throw error;
+      }}
+      onError={report}
+    >
+      {null}
+    </ManagedGameCanvas>
+  );
+  await tick();
+  expect(report).toHaveBeenCalledWith(error);
+  expect(at(owners).retire).toHaveBeenCalledOnce();
+  expect(at(owners).configure).not.toHaveBeenCalled();
+});

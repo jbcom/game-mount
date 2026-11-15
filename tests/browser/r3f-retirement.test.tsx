@@ -151,3 +151,13 @@ test("pending asynchronous configuration and renderer disposal both delay retire
   expect(() => mount.render(null)).toThrow("retiring");
   canvas.remove();
 });
+
+test("an unconfigured root can retire and release canvas ownership", async () => {
+  const canvas = document.createElement("canvas");
+  const first = createR3FMount(canvas);
+  await first.retire();
+  const second = createR3FMount(canvas);
+  await second.retire();
+  expect(first.retiring).toBe(true);
+  expect(second.retiring).toBe(true);
+});

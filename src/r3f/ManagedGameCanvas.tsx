@@ -102,7 +102,12 @@ function ManagedCanvasGeneration({
     const observer = new ResizeObserver(refresh);
     observer.observe(element);
     update.current = refresh;
-    latest.current.onMount(mount);
+    try {
+      latest.current.onMount(mount);
+    } catch (reason) {
+      void mount.retire().catch(error);
+      error(reason);
+    }
     refresh();
     return () => {
       live = false;

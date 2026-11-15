@@ -2,10 +2,9 @@ import react from "@vitejs/plugin-react";
 import { playwright } from "@vitest/browser-playwright";
 import { defineConfig } from "vitest/config";
 
-// Real-Chromium gate for the @pixi/react adapter: a real Application on a real WebGL context under
-// React StrictMode, which jsdom cannot provide. Install the browser with
-// `pnpm exec playwright install chromium`. CI runners have no GPU, so Chromium may fall back to
-// SwiftShader; the gate asserts a live context, not GPU hardware.
+// Real-WebGL gates for PixiReactMount and owned R3F retirement. Acceptance is silent, headed
+// Chromium (Linux CI uses Xvfb). The render pool's explicit headless override is diagnostic only.
+// Install the full browser with `pnpm exec playwright install --no-shell chromium`.
 export default defineConfig({
   plugins: [react()],
   test: {
