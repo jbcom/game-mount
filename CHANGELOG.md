@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.2.0](https://github.com/jbcom/game-mount/compare/v0.1.1...v0.2.0) (2026-11-15)
+
+
+### Features
+
+* **r3f:** await owned root retirement before scene disposal ([592a322](https://github.com/jbcom/game-mount/commit/592a322e87f13346ce5cc702cfdd7bf15c5a4438))
+* **r3f:** await owned root retirement before scene disposal ([fac332b](https://github.com/jbcom/game-mount/commit/fac332bfaeb392e4bccb563e03557807997ef251))
+
+
+### Bug Fixes
+
+* **r3f:** retire roots when owner initialization throws ([d8be8e3](https://github.com/jbcom/game-mount/commit/d8be8e3eec6234f1b867d49cc90afb49e5aa8d1d))
+* **r3f:** start retirement before detaching the canvas ([f83a92d](https://github.com/jbcom/game-mount/commit/f83a92d5675dd28a01bd617caa4ab0f8ad912ac2))
+
 ## [0.1.1](https://github.com/jbcom/game-mount/compare/v0.1.0...v0.1.1) (2026-10-07)
 
 
