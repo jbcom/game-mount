@@ -17,6 +17,8 @@ export interface R3FMount {
    * Stop automatic frames and retire the renderer. Every call returns the same promise, resolved
    * only after React effect cleanup and R3F renderer release. Keep scene dependencies alive until
    * it resolves. A pending renderer factory must settle before retirement can finish.
+   * A synchronous retirement failure is terminal: the promise rejects and this canvas remains
+   * reserved because cleanup completion is unknown. Recover with a fresh canvas and dependencies.
    */
   retire(): Promise<void>;
 }

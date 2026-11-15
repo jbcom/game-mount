@@ -279,3 +279,20 @@ it("retires the root if the owner callback throws", async () => {
   expect(at(owners).retire).toHaveBeenCalledOnce();
   expect(at(owners).configure).not.toHaveBeenCalled();
 });
+
+it("initiates retirement while its canvas is still attached", () => {
+  const { unmount } = render(
+    <ManagedGameCanvas active onMount={vi.fn()}>
+      {null}
+    </ManagedGameCanvas>
+  );
+  const owner = at(owners);
+  owner.retire.mockImplementation(() => {
+    expect(owner.canvas.isConnected).toBe(true);
+    owner.retiring = true;
+    return Promise.resolve();
+  });
+  unmount();
+  expect(owner.retire).toHaveBeenCalledOnce();
+  expect(owner.canvas.isConnected).toBe(false);
+});

@@ -115,8 +115,9 @@ function ManagedCanvasGeneration({
       observer.disconnect();
       canvas.removeEventListener("webglcontextlost", lost);
       canvas.removeEventListener("webglcontextrestored", restored);
+      const retired = mount.retire();
       canvas.remove();
-      void mount.retire().catch(error);
+      void retired.catch(error);
     };
   }, [restore]);
 
