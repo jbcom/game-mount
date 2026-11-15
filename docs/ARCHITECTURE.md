@@ -27,7 +27,8 @@ src/
     react.ts          game-mount/pixi/react: usePixiMount (pixi.js, react)
     pixi-react.tsx    game-mount/pixi/pixi-react: PixiReactMount (pixi.js, react, @pixi/react)
     shared.ts         measuring, resize sizing and render options both Pixi paths use
-  r3f/                game-mount/r3f: GameCanvas, AdaptiveResolution (react, three, @react-three/fiber)
+  r3f/                game-mount/r3f: GameCanvas, ManagedGameCanvas, createR3FMount, AdaptiveResolution
+                      (react, three, @react-three/fiber)
   babylon/
     index.ts          game-mount/babylon: babylonEngineOptions, SceneRoot, useBeforeRender
                       (react, @babylonjs/core, reactylon)
@@ -90,13 +91,18 @@ Breaking one of these reintroduces the bug it exists to prevent.
 8. **Nothing at module scope touches the DOM.** Every entry point loads in Node (the consumer smoke
    does exactly that), so server rendering and tests can import it.
 
+9. **External scene dependencies outlive renderer retirement.** `createR3FMount` exclusively owns
+   an imperative root; repeated `retire()` calls share one promise and one public R3F unmount
+   callback. `ManagedGameCanvas` uses that owner, one ResizeObserver and fresh canvases per effect
+   lifetime. It never observes or competes with the separate `GameCanvas`/R3F Canvas owner.
+
 ## Tests
 
 | Layer | Where | What it proves |
 | --- | --- | --- |
 | Unit (jsdom) | `tests/core`, `tests/react`, `tests/pixi`, `tests/r3f`, `tests/babylon` | Every branch of `src`, at 100% coverage; Babylon runs for real on `NullEngine` |
 | Contract | `tests/repository-contract.test.ts` | Exports map, optional peers, peer isolation, CI installs Chromium |
-| Real WebGL | `tests/browser/pixi-react-mount.test.tsx` | `@pixi/react` under StrictMode on a real context in Chromium |
+| Real WebGL | `tests/browser/*.test.tsx` | `@pixi/react` StrictMode plus R3F prequeued frames, async configure/disposal and retirement in Chromium |
 | Package | `publint`, `attw` | The exports map and the ESM/CommonJS type layout |
 | Consumer | `scripts/consumer-smoke.mjs` | Each entry point installs with only its peers and loads under ESM and CommonJS |
 

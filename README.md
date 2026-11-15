@@ -53,7 +53,7 @@ All peers are optional at the package level. Each selected adapter still require
 | `game-mount/pixi` | `mountPixi`, `applyFilterResolutionFix` | PixiJS 8 |
 | `game-mount/pixi/react` | `usePixiMount` | PixiJS 8, React 18 or 19 |
 | `game-mount/pixi/pixi-react` | `PixiReactMount` | PixiJS 8, React 18 or 19, @pixi/react 8.0.5+ within 8.x |
-| `game-mount/r3f` | `GameCanvas`, `AdaptiveResolution` | React 18 or 19, Three >=0.160, @react-three/fiber 9 |
+| `game-mount/r3f` | `GameCanvas`, `ManagedGameCanvas`, `createR3FMount`, `AdaptiveResolution` | React 18 or 19, Three >=0.160, @react-three/fiber >=9.8.2 |
 | `game-mount/babylon` | `babylonEngineOptions`, `SceneRoot`, `useBeforeRender` | React 18 or 19, Babylon core 7–9, Reactylon 3 |
 | `game-mount/babylon/havok` | `useHavokPhysics` | React 18 or 19, Babylon core 7–9, Havok 1 |
 | `game-mount/styles.css` | `.game-canvas-host` stylesheet | None |
@@ -75,3 +75,8 @@ The @pixi/react 8.0.5 ESM dependency graph has an upstream extensionless import 
 ## License
 
 [MIT](LICENSE), Copyright (c) 2026 Jon Bogaty.
+
+For an externally owned simulation, use `ManagedGameCanvas` and retain each `onMount` handle.
+Await its idempotent `retire()` promise before disposing scene dependencies; React removal alone
+is not proof that R3F has finished effect cleanup and renderer release. See the
+[scene lifetime contract](./docs/API.md#explicit-scene-lifetime).

@@ -52,8 +52,8 @@ jobs:
           if test -f /etc/apt/apt-mirrors.txt; then
             printf '%s\n' 'https://archive.ubuntu.com/ubuntu/' | sudo tee /etc/apt/apt-mirrors.txt > /dev/null
           fi
-      - run: pnpm exec playwright install --with-deps chromium
-      - run: pnpm verify
+      - run: pnpm exec playwright install --with-deps --no-shell chromium
+      - run: xvfb-run -a pnpm verify
 
   docs:
     name: Docs build
@@ -91,8 +91,8 @@ jobs:
           if test -f /etc/apt/apt-mirrors.txt; then
             printf '%s\n' 'https://archive.ubuntu.com/ubuntu/' | sudo tee /etc/apt/apt-mirrors.txt > /dev/null
           fi
-      - run: pnpm exec playwright install --with-deps chromium
-      - run: pnpm coverage
+      - run: pnpm exec playwright install --with-deps --no-shell chromium
+      - run: xvfb-run -a pnpm coverage
       - name: SonarCloud scan
         uses: SonarSource/sonarqube-scan-action@e805d875275f728fac1885b413934be6d7c63f65 # v8.4.1
         env:

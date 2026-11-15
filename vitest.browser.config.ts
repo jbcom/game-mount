@@ -13,10 +13,31 @@ export default defineConfig({
     passWithNoTests: false,
     browser: {
       enabled: true,
-      headless: true,
+      headless: process.env.HEAVY_RENDER_HEADLESS === "1",
       provider: playwright({
-        launchOptions: { args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader"] },
+        launchOptions: {
+          args: [
+            "--mute-audio",
+            "--enable-automation",
+            ...(process.env.HEAVY_RENDER_HOST
+              ? ["--use-angle=metal", "--ignore-gpu-blocklist"]
+              : ["--use-angle=swiftshader", "--enable-unsafe-swiftshader"]),
+          ],
+        },
       }),
+      commands: {
+        async browserArguments({ context, page }) {
+          const session = await context.newCDPSession(page);
+          try {
+            return {
+              args: (await session.send("Browser.getBrowserCommandLine")).arguments,
+              headedRequired: process.env.HEAVY_RENDER_HEADLESS !== "1",
+            };
+          } finally {
+            await session.detach();
+          }
+        },
+      },
       instances: [{ browser: "chromium" }],
     },
   },

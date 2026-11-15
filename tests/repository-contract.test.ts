@@ -134,7 +134,7 @@ describe("CI", () => {
   it("installs Chromium before every pnpm verify", () => {
     for (const workflow of ["ci.yml", "cd.yml"]) {
       const text = readFileSync(path.join(root, ".github/workflows", workflow), "utf8");
-      const install = text.indexOf("playwright install --with-deps chromium");
+      const install = text.indexOf("playwright install --with-deps --no-shell chromium");
       const verify = text.indexOf("pnpm verify");
       expect(install, workflow).toBeGreaterThan(-1);
       expect(install, workflow).toBeLessThan(verify);

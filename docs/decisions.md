@@ -253,3 +253,29 @@ checks. The rules protect main, enforce Conventional Commits on other branches, 
 release tags. They add no Copilot review or Code Quality rule, since both spend AI credits.
 The script is an explicit administrative action, never part of verification or installation.
 Its canonical formatting is preserved by a file-specific formatter override; lint still applies.
+
+## Explicit R3F root retirement has one owner
+
+**Decision.** `createR3FMount` and `ManagedGameCanvas` use one imperative root with a shared,
+idempotent retirement promise. `GameCanvas` keeps its existing R3F Canvas ownership unchanged.
+Both React components share rendering policy. The minimum R3F peer is 9.8.2, whose public unmount
+callback runs after effect cleanup and asynchronous renderer release.
+
+**Why.** R3F root.unmount returns void. Disposing a simulation immediately afterward can leave a
+queued frame or React effect cleanup reading a destroyed world. Calling unmount again replaces
+R3F's callback token; attaching to an existing Canvas after removal can instead miss completion.
+The new owner calls the public unmount callback API exactly once and reserves the canvas until it
+finishes. Public setFrameloop stops queued automatic frames when a renderer exists; there are no
+private internal.frames or internal.active writes. Pending configuration is allowed to settle and
+release its renderer before the retirement promise resolves.
+
+**Cost.** Managed scenes have a separate React root, so context is provided inside scene children
+or dependencies are passed as props. Their host owns one ResizeObserver. Consumers keep every
+root generation alive through retirement, including StrictMode replay and context restoration,
+and await all owners before disposing shared world resources. Manual frame advancement must stop
+before retirement. This lifecycle cannot guarantee cleanup completion if a renderer factory never
+settles or third-party renderer cleanup fails.
+
+The browser gate is silent and headed by default, including Linux Xvfb CI. A pool's explicit
+HEAVY_RENDER_HEADLESS override is a diagnostic route; it is not headed acceptance evidence. The
+gate records Chromium's actual CDP command line and checks mute and headed flags.
