@@ -361,16 +361,37 @@ describe("the tracker", () => {
   });
 });
 
-describe("Anchor", () => {
-  function Scene({ children }: { children: ReactNode }): ReactNode {
-    const tracker = useAnchorTracker();
-    sceneTracker.current = tracker;
-    return <AnchorLayer tracker={tracker}>{children}</AnchorLayer>;
-  }
-  const sceneTracker: { current: ReturnType<typeof createAnchorTracker> | null } = {
-    current: null,
-  };
+const sceneTracker: { current: ReturnType<typeof createAnchorTracker> | null } = {
+  current: null,
+};
 
+function Scene({ children }: { children: ReactNode }): ReactNode {
+  const tracker = useAnchorTracker();
+  sceneTracker.current = tracker;
+  return <AnchorLayer tracker={tracker}>{children}</AnchorLayer>;
+}
+
+function Holder({
+  tracker,
+  edge,
+}: {
+  tracker: ReturnType<typeof createAnchorTracker>;
+  edge: ReactNode;
+}): ReactNode {
+  const ref = useRef(tracker);
+  return (
+    <AnchorLayer tracker={ref.current}>
+      <Anchor position={[60, 0, -10]} edge={edge} />
+    </AnchorLayer>
+  );
+}
+
+function Probe({ seen }: { seen: Set<unknown> }): ReactNode {
+  seen.add(useAnchorTracker());
+  return null;
+}
+
+describe("Anchor", () => {
   it("renders only what the host passes, hidden until projected", () => {
     const { container } = render(
       <Scene>
@@ -574,25 +595,17 @@ describe("Anchor", () => {
 
   it("counts a boolean or empty indicator as none", () => {
     const tracker = createAnchorTracker();
-    function Holder({ edge }: { edge: ReactNode }): ReactNode {
-      const ref = useRef(tracker);
-      return (
-        <AnchorLayer tracker={ref.current}>
-          <Anchor position={[60, 0, -10]} edge={edge} />
-        </AnchorLayer>
-      );
-    }
-    const { container, rerender } = render(<Holder edge={false} />);
+    const { container, rerender } = render(<Holder tracker={tracker} edge={false} />);
     const anchor = container.querySelector("[data-game-mount-anchor]") as HTMLElement;
     act(() => tracker.update(frame()));
     expect(anchor.dataset.state).toBe("hidden");
-    rerender(<Holder edge={null} />);
+    rerender(<Holder tracker={tracker} edge={null} />);
     act(() => tracker.update(frame()));
     expect(anchor.dataset.state).toBe("hidden");
-    rerender(<Holder edge={true} />);
+    rerender(<Holder tracker={tracker} edge={true} />);
     act(() => tracker.update(frame()));
     expect(anchor.dataset.state).toBe("hidden");
-    rerender(<Holder edge="arrow" />);
+    rerender(<Holder tracker={tracker} edge="arrow" />);
     act(() => tracker.update(frame()));
     expect(anchor.dataset.state).toBe("edge");
   });
@@ -601,12 +614,8 @@ describe("Anchor", () => {
 describe("useAnchorTracker", () => {
   it("returns one tracker for the life of the component", () => {
     const seen = new Set<unknown>();
-    function Probe(): ReactNode {
-      seen.add(useAnchorTracker());
-      return null;
-    }
-    const { rerender } = render(createElement(Probe));
-    rerender(createElement(Probe));
+    const { rerender } = render(createElement(Probe, { seen }));
+    rerender(createElement(Probe, { seen }));
     expect(seen.size).toBe(1);
   });
 });

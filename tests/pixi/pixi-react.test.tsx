@@ -94,6 +94,11 @@ async function flush(): Promise<void> {
   });
 }
 
+function WithRef({ target }: { target: HTMLElement }): ReactElement {
+  const ref = useRef<HTMLElement | null>(target);
+  return <PixiReactMount resizeTarget={ref} />;
+}
+
 function sizedHost(width: number, height: number): HTMLDivElement {
   const host = document.createElement("div");
   Object.defineProperty(host, "clientWidth", { configurable: true, value: width });
@@ -282,11 +287,7 @@ describe("PixiReactMount", () => {
   it("resolves a ref resize target", async () => {
     const host = sizedHost(500, 300);
     const target = sizedHost(321, 123);
-    function WithRef(): ReactElement {
-      const ref = useRef<HTMLElement | null>(target);
-      return <PixiReactMount resizeTarget={ref} />;
-    }
-    const root = await render(<WithRef />, host);
+    const root = await render(<WithRef target={target} />, host);
     expect(FakeResizeObserver.instances[0]?.observed).toEqual([target]);
     expect(__mockState.apps.find((app) => !app.destroyed)?.resizeCalls).toEqual([[321, 123]]);
     await act(async () => root.unmount());

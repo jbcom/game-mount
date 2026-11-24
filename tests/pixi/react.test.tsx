@@ -28,6 +28,18 @@ function Stage(): ReactElement {
   return <div data-testid="host" ref={hostRef} />;
 }
 
+function Detached(): ReactElement {
+  const ref = useRef<HTMLDivElement | null>(null);
+  captured.handle = usePixiMount(ref);
+  return <span />;
+}
+
+function CanvasStage(): ReactElement {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  captured.handle = usePixiMount(canvasRef);
+  return <canvas ref={canvasRef} />;
+}
+
 async function flush(): Promise<void> {
   // Let the async mountPixi promise chain settle inside act().
   await act(async () => {
@@ -76,11 +88,6 @@ describe("usePixiMount", () => {
   });
 
   it("mounts nothing while the ref is unattached", async () => {
-    function Detached(): ReactElement {
-      const ref = useRef<HTMLDivElement | null>(null);
-      captured.handle = usePixiMount(ref);
-      return <span />;
-    }
     const el = document.createElement("div");
     document.body.appendChild(el);
     const root = createRoot(el);
@@ -93,11 +100,6 @@ describe("usePixiMount", () => {
 
   it("passes a canvas ref through as options.canvas (single-mount trees)", async () => {
     // (captured.handle already reset by beforeEach)
-    function CanvasStage(): ReactElement {
-      const canvasRef = useRef<HTMLCanvasElement | null>(null);
-      captured.handle = usePixiMount(canvasRef);
-      return <canvas ref={canvasRef} />;
-    }
     const el = document.createElement("div");
     document.body.appendChild(el);
     let root: Root | null = null;
