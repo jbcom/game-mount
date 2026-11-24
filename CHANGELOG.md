@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.3.0](https://github.com/jbcom/game-mount/compare/v0.2.0...v0.3.0) (2026-11-24)
+
+
+### Features
+
+* bounded ground camera (game-mount/camera) and r3f GroundCameraRig ([d23ff2f](https://github.com/jbcom/game-mount/commit/d23ff2fb2365322e866b90434cf625f6fcede74c))
+* **camera:** add the bounded ground camera as a pure game-mount/camera entry ([0b89518](https://github.com/jbcom/game-mount/commit/0b89518ba429d39a5b1a2b5bad7f0976af7ca8c4))
+* **r3f:** add GroundCameraRig to drive the r3f camera from the ground camera ([0cbc324](https://github.com/jbcom/game-mount/commit/0cbc3242f4a92e76f8ef15252017ab7aa929dea5))
+
 ## [0.2.0](https://github.com/jbcom/game-mount/compare/v0.1.1...v0.2.0) (2026-11-15)
 
 
