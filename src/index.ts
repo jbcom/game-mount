@@ -4,7 +4,8 @@
  * Renderer adapters live under their own subpaths and need only their own renderer installed:
  * `game-mount/pixi`, `game-mount/pixi/react`, `game-mount/pixi/pixi-react`, `game-mount/r3f`,
  * `game-mount/babylon` and `game-mount/babylon/havok`. React-only, renderer-neutral pieces are in
- * `game-mount/react`; the host stylesheet is `game-mount/styles.css`.
+ * `game-mount/react`; the bounded ground camera maths, with no peers, is `game-mount/camera`; the
+ * host stylesheet is `game-mount/styles.css`.
  */
 
 export {

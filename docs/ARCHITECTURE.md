@@ -21,14 +21,21 @@ src/
     pixelRatioLadder.ts  stepPixelRatio
     assetError.ts     classifyAssetError
   styles.css          game-mount/styles.css, the host contract as CSS
+  camera/             game-mount/camera: the bounded ground camera as pure maths, no dependencies
+    types.ts          state, limits, pose and geometry types
+    bounds.ts         inflateRect, growBounds, clampToBounds (a union of rectangles)
+    state.ts          clampState
+    pose.ts           pitchFor, poseFor, screenToGround
+    gestures.ts       dragGround, panByPixels, zoomBy, rotateBy
+    ease.ts           easeToward
   react/              game-mount/react: GameCanvasErrorBoundary (react)
   pixi/
     index.ts          game-mount/pixi: mountPixi, applyFilterResolutionFix (pixi.js)
     react.ts          game-mount/pixi/react: usePixiMount (pixi.js, react)
     pixi-react.tsx    game-mount/pixi/pixi-react: PixiReactMount (pixi.js, react, @pixi/react)
     shared.ts         measuring, resize sizing and render options both Pixi paths use
-  r3f/                game-mount/r3f: GameCanvas, ManagedGameCanvas, createR3FMount, AdaptiveResolution
-                      (react, three, @react-three/fiber)
+  r3f/                game-mount/r3f: GameCanvas, ManagedGameCanvas, createR3FMount, AdaptiveResolution,
+                      GroundCameraRig (react, three, @react-three/fiber)
   babylon/
     index.ts          game-mount/babylon: babylonEngineOptions, SceneRoot, useBeforeRender
                       (react, @babylonjs/core, reactylon)
@@ -43,6 +50,10 @@ core  <-  react  <-  r3f
   |-- pixi (mount.ts, shared.ts)  <-  pixi/react, pixi/pixi-react
   |-- babylon  <-  babylon/havok (imports nothing from babylon/index)
 ```
+
+`camera` stands beside the core, not under an adapter: it imports nothing, not even the core, so
+any renderer or input path can use it. `r3f` imports it for `GroundCameraRig`, which is the only
+renderer-specific part of the ground camera.
 
 The core imports nothing. Adapters import the core and their own renderer, never another adapter's
 renderer. Every peer is optional, and each entry point's runtime import graph reaches only the
@@ -100,7 +111,7 @@ Breaking one of these reintroduces the bug it exists to prevent.
 
 | Layer | Where | What it proves |
 | --- | --- | --- |
-| Unit (jsdom) | `tests/core`, `tests/react`, `tests/pixi`, `tests/r3f`, `tests/babylon` | Every branch of `src`, at 100% coverage; Babylon runs for real on `NullEngine` |
+| Unit (jsdom) | `tests/core`, `tests/camera`, `tests/react`, `tests/pixi`, `tests/r3f`, `tests/babylon` | Every branch of `src`, at 100% coverage; Babylon runs for real on `NullEngine` |
 | Contract | `tests/repository-contract.test.ts` | Exports map, optional peers, peer isolation, CI installs Chromium |
 | Real WebGL | `tests/browser/*.test.tsx` | `@pixi/react` StrictMode plus R3F prequeued frames, async configure/disposal and retirement in Chromium |
 | Package | `publint`, `attw` | The exports map and the ESM/CommonJS type layout |

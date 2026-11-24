@@ -10,4 +10,5 @@ export {
 } from "./AdaptiveResolution.js";
 export { createR3FMount, type R3FMount } from "./createR3FMount.js";
 export { GameCanvas, type GameCanvasHostProps, type GameCanvasProps } from "./GameCanvas.js";
+export { GroundCameraRig, type GroundCameraRigProps } from "./GroundCameraRig.js";
 export { ManagedGameCanvas, type ManagedGameCanvasProps } from "./ManagedGameCanvas.js";

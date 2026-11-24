@@ -49,11 +49,12 @@ All peers are optional at the package level. Each selected adapter still require
 | Import | Exports | Required peers |
 | --- | --- | --- |
 | `game-mount` | DPR, quality, device, motion, host, phase, resolution ladder and error classification | None |
+| `game-mount/camera` | Bounded ground camera maths: `poseFor`, `dragGround`, `zoomBy`, `rotateBy`, `panByPixels`, `clampState`, `easeToward` | None |
 | `game-mount/react` | `GameCanvasErrorBoundary` | React 18 or 19 |
 | `game-mount/pixi` | `mountPixi`, `applyFilterResolutionFix` | PixiJS 8 |
 | `game-mount/pixi/react` | `usePixiMount` | PixiJS 8, React 18 or 19 |
 | `game-mount/pixi/pixi-react` | `PixiReactMount` | PixiJS 8, React 18 or 19, @pixi/react 8.0.5+ within 8.x |
-| `game-mount/r3f` | `GameCanvas`, `ManagedGameCanvas`, `createR3FMount`, `AdaptiveResolution` | React 18 or 19, Three >=0.160, @react-three/fiber >=9.8.2 |
+| `game-mount/r3f` | `GameCanvas`, `ManagedGameCanvas`, `createR3FMount`, `AdaptiveResolution`, `GroundCameraRig` | React 18 or 19, Three >=0.160, @react-three/fiber >=9.8.2 |
 | `game-mount/babylon` | `babylonEngineOptions`, `SceneRoot`, `useBeforeRender` | React 18 or 19, Babylon core 7–9, Reactylon 3 |
 | `game-mount/babylon/havok` | `useHavokPhysics` | React 18 or 19, Babylon core 7–9, Havok 1 |
 | `game-mount/styles.css` | `.game-canvas-host` stylesheet | None |

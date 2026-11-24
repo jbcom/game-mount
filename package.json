@@ -55,6 +55,16 @@
         "default": "./dist/cjs/index.cjs"
       }
     },
+    "./camera": {
+      "import": {
+        "types": "./dist/esm/camera/index.d.ts",
+        "default": "./dist/esm/camera/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/camera/index.d.cts",
+        "default": "./dist/cjs/camera/index.cjs"
+      }
+    },
     "./react": {
       "import": {
         "types": "./dist/esm/react/index.d.ts",
