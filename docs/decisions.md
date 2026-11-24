@@ -305,3 +305,50 @@ exact on flat ground.
 
 **Cost.** Over steep terrain the drag is approximate, since it treats the ground as flat at the
 target's height. The rig needs a continuously running frame loop to ease.
+
+## World-anchored markers are DOM over the canvas, not drei's `Html`
+
+**Decision.** `game-mount/r3f` anchors HTML to world positions with its own three pieces: a pure
+`projectAnchor` in `game-mount/camera`, an `AnchorProjector` inside the canvas, and an
+`AnchorLayer` with `Anchor`s in the host's React tree, joined by one tracker object. It adds no
+dependency. drei's `Html` is not used, and nothing is imported from it.
+
+**Why.** Read against drei 10.7.9, `Html` does not fit this package or the job:
+
+- It declares `react ^19` and `react-dom` as peers, and this package supports React 18 and 19 with
+  every peer optional. Adopting it would change `ENTRY_PEERS` for `./r3f`, the packed-consumer
+  smoke and every consumer's install.
+- It renders its children with a second `ReactDOM.createRoot` per instance, because the canvas's
+  reconciler cannot render a `div`. The host's context, theme and focus order stop at that root.
+  Here the markers are children of the host's own tree and only the projection runs in the canvas.
+- Without `distanceFactor` it keeps a constant size, but the spec also asks for a size that varies
+  within a range by distance, a press target larger than the glyph, and an indicator at the screen
+  border for an anchor out of view. It hides an anchor behind the camera, which is the opposite of
+  the last: there is nothing to build an indicator from.
+
+What is kept from it is the idea: project the point, test for behind-the-camera, write the result
+straight to the DOM each frame.
+
+**Shape.**
+
+- The maths is peer-free and takes the view-projection matrix and eye, so a Pixi or Babylon scene
+  can use it and it tests against three's own `Vector3.project` as an independent oracle. A point
+  behind the camera takes its direction from the undivided clip coordinates; dividing by a negative
+  `w` would mirror it through the screen centre and point an arrow the wrong way.
+- Insets are per side and shrink the rectangle in which a full marker is shown, so an anchor under
+  a bar gets an indicator on the bar's edge rather than being lost beneath it. Indicator slots are
+  capped by `maxEdgeIndicators` and ordered by `edgeRank`, then distance, because only the
+  projection knows which anchors are off screen.
+- The projector re-reads the camera's matrices each frame before projecting. The renderer only
+  refreshes `matrixWorldInverse` when it draws, so without that a marker trails a moving camera by
+  one frame.
+- Everything per frame is a direct style write behind a changed-value check. A moving marker costs
+  no React render; `onStateChange` fires on transitions only.
+- The package draws no glyph, text or accessible name, and animates nothing. Content, words and
+  motion belong to the host, which also gates motion on reduced-motion preference. Which things get
+  markers, and how many, stays the host's choice.
+- Markers are overlays and are not occluded. A raycast per marker per frame is real cost, and an
+  interface glyph over a thing is meant to be seen through what stands in front of it.
+
+**Cost.** Three pieces and a shared tracker replace one component, and the layer must sit over the
+same box as the canvas. With `frameloop="demand"` anchors move only on drawn frames.

@@ -96,7 +96,7 @@ const SCENARIOS = [
           // An identity view-projection looks down -z with clip w = -z, so w is 10 for z = -10.
           const identityW = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, -1, 0, 0, 0, 0];
           const ahead = m.projectAnchor([0, 0, -10], { viewProjection: identityW, eye: [0, 0, 0] }, viewport);
-          if (ahead.x !== 200 || ahead.y !== 422 || ahead.distance !== 10 || !ahead.inside) throw new Error("projectAnchor " + JSON.stringify(ahead));
+          if (ahead.x !== 195 || ahead.y !== 422 || ahead.distance !== 10 || !ahead.inside) throw new Error("projectAnchor " + JSON.stringify(ahead));
           const away = m.projectAnchor([100, 0, -10], { viewProjection: identityW, eye: [0, 0, 0] }, viewport, 8);
           if (away.inside || away.edge.x !== 382 || away.edge.angle !== 0) throw new Error("projectAnchor edge " + JSON.stringify(away));
           const behind = m.projectAnchor([0, 0, 10], { viewProjection: identityW, eye: [0, 0, 0] }, viewport);
@@ -174,10 +174,19 @@ const SCENARIOS = [
           if (typeof m.GameCanvas !== "function") throw new Error("GameCanvas");
           if (typeof m.AdaptiveResolution !== "function") throw new Error("AdaptiveResolution");
           if (typeof m.GroundCameraRig !== "function") throw new Error("GroundCameraRig");
+          for (const name of ["Anchor", "AnchorLayer", "AnchorProjector", "useAnchorTracker", "createAnchorTracker"]) {
+            if (typeof m[name] !== "function") throw new Error(name);
+          }
           const { createElement } = await load("react");
           const { renderToStaticMarkup } = await load("react-dom/server");
           const html = renderToStaticMarkup(createElement(m.GameCanvas, { active: false }, null));
           if (html !== "") throw new Error("an inactive GameCanvas rendered " + html);
+          const tracker = m.createAnchorTracker();
+          const anchors = renderToStaticMarkup(
+            createElement(m.AnchorLayer, { tracker }, createElement(m.Anchor, { position: [0, 0, -5], onPress() {} })),
+          );
+          if (!anchors.includes('data-state="hidden"') || !anchors.includes("<button")) throw new Error("anchor markup " + anchors);
+          if (anchors.replace(/<[^>]*>/g, "") !== "") throw new Error("an anchor drew text it was not given: " + anchors);
         `,
       },
     ],

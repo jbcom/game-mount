@@ -17,4 +17,4 @@
 - [Repository](https://github.com/jbcom/game-mount): source, tests and issues.
 - [npm](https://www.npmjs.com/package/game-mount): package registry entry after first release.
 
-Use only the adapter subpath needed by the application. The core needs no peers. `game-mount/camera` is a peer-free ground camera (pure maths); `GroundCameraRig` in `game-mount/r3f` applies it. All renderer peers are optional; install the selected adapter's peers explicitly. Mounts require a browser and a parent with a resolved height.
+Use only the adapter subpath needed by the application. The core needs no peers. `game-mount/camera` is a peer-free ground camera (pure maths); `GroundCameraRig` in `game-mount/r3f` applies it. `Anchor` in `game-mount/r3f` pins HTML markers and labels to world positions at a constant screen size, with edge indicators for off-screen anchors. All renderer peers are optional; install the selected adapter's peers explicitly. Mounts require a browser and a parent with a resolved height.

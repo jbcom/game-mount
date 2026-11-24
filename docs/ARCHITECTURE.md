@@ -36,7 +36,8 @@ src/
     pixi-react.tsx    game-mount/pixi/pixi-react: PixiReactMount (pixi.js, react, @pixi/react)
     shared.ts         measuring, resize sizing and render options both Pixi paths use
   r3f/                game-mount/r3f: GameCanvas, ManagedGameCanvas, createR3FMount, AdaptiveResolution,
-                      GroundCameraRig (react, three, @react-three/fiber)
+                      GroundCameraRig, Anchor, AnchorLayer, AnchorProjector, anchorTracker
+                      (react, three, @react-three/fiber)
   babylon/
     index.ts          game-mount/babylon: babylonEngineOptions, SceneRoot, useBeforeRender
                       (react, @babylonjs/core, reactylon)
@@ -114,7 +115,7 @@ Breaking one of these reintroduces the bug it exists to prevent.
 | --- | --- | --- |
 | Unit (jsdom) | `tests/core`, `tests/camera`, `tests/react`, `tests/pixi`, `tests/r3f`, `tests/babylon` | Every branch of `src`, at 100% coverage; Babylon runs for real on `NullEngine` |
 | Contract | `tests/repository-contract.test.ts` | Exports map, optional peers, peer isolation, CI installs Chromium |
-| Real WebGL | `tests/browser/*.test.tsx` | `@pixi/react` StrictMode plus R3F prequeued frames, async configure/disposal and retirement in Chromium |
+| Real WebGL | `tests/browser/*.test.tsx` | `@pixi/react` StrictMode plus R3F prequeued frames, async configure/disposal and retirement in Chromium; world-anchored markers through the real frame loop: position, constant size, edge clamping, insets, behind-camera direction, press targets |
 | Package | `publint`, `attw` | The exports map and the ESM/CommonJS type layout |
 | Consumer | `scripts/consumer-smoke.mjs` | Each entry point installs with only its peers and loads under ESM and CommonJS |
 

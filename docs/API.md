@@ -359,6 +359,106 @@ export function GroundView() {
 }
 ```
 
+### World-anchored markers
+
+HTML that follows a world position, keeps one size on screen at any distance, and shows an
+indicator at the border of the view while its anchor is off screen: a marker over a thing, a count
+on a part, a label, an arrow. It is plain DOM in the host's own React tree, so the host's context,
+styles and focus order reach it. Placement is written straight to the DOM each frame; a moving
+marker costs no React render.
+
+It takes three pieces that share one tracker, because a `<div>` cannot render inside the canvas's
+own React root:
+
+| Piece | Where | Role |
+| --- | --- | --- |
+| `useAnchorTracker()` or `createAnchorTracker()` | Host's tree | The `AnchorTracker` that joins the other two |
+| `AnchorProjector` | Inside the canvas | Projects every anchor through the canvas camera each frame |
+| `AnchorLayer` and `Anchor` | Host's tree, over the canvas | The overlay and the markers in it |
+
+`AnchorProjectorProps`: `tracker`, `insets?` (a number, or any of `top`, `right`, `bottom`,
+`left`: the margins HUD furniture takes, so an anchor under a bar gets its indicator on the bar's
+edge instead of being lost beneath it), `maxEdgeIndicators?` (default unlimited) and `priority?`
+(default 0; keep it at or below 0, so it runs after a camera rig at -1 and never takes over
+rendering). It reads the canvas's own `size`. It re-reads the camera's matrices itself, so a marker
+is exact in the frame the camera moved, not one frame behind. With `frameloop="demand"`, call
+`invalidate()` when a position changes.
+
+`AnchorLayer` takes `tracker`, `children` and any div attributes. It fills its nearest positioned
+ancestor (`position: absolute; inset: 0; overflow: hidden`) and lets every pointer through except
+to an anchor that asked for one. Put it in the same box as the canvas, after it:
+
+`AnchorProps`:
+
+| Prop | Behavior |
+| --- | --- |
+| `position` | Required. `[x, y, z]`, or a getter called every frame for a moving thing (`null` hides) |
+| `children?` | The marker, shown while the anchor is in view. Only what the host passes is drawn: no default glyph, text or accessible name |
+| `edge?` | The indicator shown at the border while the anchor is off screen or under the insets. Omit it and the anchor is hidden there. Its centre sits on the border |
+| `offset?` | `[x, y]` pixels from the projected point, applied to the marker only, for example `[0, -24]` to sit above a thing |
+| `size?` | The glyph box in pixels: a number for a constant size at any distance, or `(distance) => px` (world units in) for a size that varies by distance, such as 24 to 40. Also published as `--anchor-size`. Omit it and the content sizes itself |
+| `minTarget?` | Smallest side of the press target in pixels (48, or 64 with large targets on). The glyph keeps its size, centred in the target |
+| `edgeRank?` | Lower ranks get limited indicator slots first; equal ranks go to the nearer anchor. Default 0 |
+| `onPress?` | Makes the marker a `<button>` (click, Enter, Space) |
+| `onPointerDown?` | Makes the marker a `<button>`; receives the pointer-down unchanged and never prevented, so a press can start a drag the host owns. The button has `touch-action: none` |
+| `label?` | `aria-label` of the button, from the host's own words |
+| `onStateChange?` | `(state: "inside" \| "edge" \| "hidden") => void`, called on a change only, not every frame |
+| `className?`, `style?` | On the anchor's zero-size origin element; the layout contract wins over `style` |
+
+The anchor's origin element carries `data-state` (`inside`, `edge`, `hidden`) and three CSS
+variables for the host's styling: `--anchor-distance` (world units), `--anchor-size` (with `size`)
+and `--anchor-angle` (radians toward the anchor, while at the edge: `transform:
+rotate(var(--anchor-angle))` turns an arrow drawn pointing right). The marker part and the edge
+part are marked `data-anchor-part="marker"` and `"edge"`; the hidden one has the `hidden`
+attribute. `hidden` also covers an anchor with no position and one that lost an indicator slot to
+`maxEdgeIndicators`.
+
+What the package leaves to the host: choosing which things get markers, ordering and capping them
+(it publishes `--anchor-distance` and takes `edgeRank` so the host decides), the words and glyphs,
+and motion. It animates nothing, so a marker never bobs or pulses by itself; a host that adds
+motion should gate it on `detectReduceMotion()` or its own setting. Anchors are overlays drawn
+above the scene and are not hidden by objects in front of them. An anchor behind the camera points
+the way the camera would turn to face it.
+
+`createAnchorTracker()` returns an `AnchorTracker` with `register(target)`, `update(frame)` and
+`refresh()`. `update` is what `AnchorProjector` calls each frame; call it from another loop with an
+`AnchorFrame` (`camera`, `width`, `height`, `insets?`, `maxEdgeIndicators?`) to drive anchors
+without the component. `Anchor` calls `refresh()` after every commit so a changed prop shows at
+once on an idle canvas. A negative or non-finite inset throws `RangeError`.
+
+```tsx
+import { Anchor, AnchorLayer, AnchorProjector, GameCanvas, useAnchorTracker } from "game-mount/r3f";
+
+export function Field({ things }: { things: readonly { id: string; at: [number, number, number]; label: string }[] }) {
+  const tracker = useAnchorTracker();
+  return (
+    <div style={{ position: "relative", height: 480 }}>
+      <GameCanvas active>
+        <AnchorProjector tracker={tracker} insets={{ top: 96, bottom: 120 }} maxEdgeIndicators={3} />
+      </GameCanvas>
+      <AnchorLayer tracker={tracker}>
+        {things.map((thing) => (
+          <Anchor
+            key={thing.id}
+            position={thing.at}
+            offset={[0, -24]}
+            size={(distance) => Math.max(24, Math.min(40, 48 - distance * 2))}
+            minTarget={48}
+            label={thing.label}
+            onPress={() => console.info(thing.id)}
+            edge={<span style={{ display: "block", transform: "rotate(var(--anchor-angle))" }}>➤</span>}
+          >
+            <span>{thing.label}</span>
+          </Anchor>
+        ))}
+      </AnchorLayer>
+    </div>
+  );
+}
+```
+
+`projectAnchor` in `game-mount/camera` is the maths underneath, usable from any renderer.
+
 ## Babylon: `game-mount/babylon`
 
 Requires React, Babylon core and Reactylon.
