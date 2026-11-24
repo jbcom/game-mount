@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.1](https://github.com/jbcom/game-mount/compare/v0.4.0...v0.4.1) (2026-11-24)
+
+
+### Bug Fixes
+
+* **lint:** adopt biome 2.6 and hoist test components to module scope ([be82975](https://github.com/jbcom/game-mount/commit/be8297596bcab77485369aba5665cc5cfefb41d5))
+
 ## [0.4.0](https://github.com/jbcom/game-mount/compare/v0.3.0...v0.4.0) (2026-11-24)
 
 
