@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.4.2](https://github.com/jbcom/game-mount/compare/v0.4.1...v0.4.2) (2026-11-24)
+
+
+### Bug Fixes
+
+* **deps:** override vulnerable transitive docs-toolchain packages ([a6ab8d1](https://github.com/jbcom/game-mount/commit/a6ab8d132ef25307bd7007820c3002b4849429f9))
+* **deps:** override vulnerable transitive docs-toolchain packages ([3517e27](https://github.com/jbcom/game-mount/commit/3517e279238a32fac2537ca7383c63d53dcf9f90))
+
 ## [0.4.1](https://github.com/jbcom/game-mount/compare/v0.4.0...v0.4.1) (2026-11-24)
 
 
