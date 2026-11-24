@@ -182,9 +182,10 @@ test("a marker follows its world point and keeps one screen size from 2 m to 100
     const glyph = marker.querySelector("svg") as SVGElement;
     sizes.push(glyph.getBoundingClientRect().width);
     expect(glyph.getBoundingClientRect().height).toBeCloseTo(28, 1);
-    expect(anchorAt(harness.host).style.getPropertyValue("--anchor-distance")).toBe(
-      String(distance)
-    );
+    // The point is 1.5 m east and 0.5 m up of the camera's line of sight.
+    expect(
+      Number.parseFloat(anchorAt(harness.host).style.getPropertyValue("--anchor-distance"))
+    ).toBeCloseTo(Math.hypot(1.5, 0.5, distance), 2);
   }
   for (const width of sizes) expect(width).toBeCloseTo(28, 1);
 });

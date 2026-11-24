@@ -81,7 +81,6 @@ const buttonReset: CSSProperties = {
   color: "inherit",
   cursor: "pointer",
   pointerEvents: "auto",
-  touchAction: "none",
 };
 
 function present(node: ReactNode): boolean {
@@ -164,7 +163,12 @@ export function Anchor(props: AnchorProps): ReactNode {
             aria-label={label}
             onClick={onPress}
             onPointerDown={onPointerDown}
-            style={{ ...targetStyle, ...buttonReset }}
+            style={{
+              ...targetStyle,
+              ...buttonReset,
+              // Only a marker that can start a drag takes the touch away from the browser.
+              ...(onPointerDown ? { touchAction: "none" } : { touchAction: "manipulation" }),
+            }}
           >
             {content}
           </button>

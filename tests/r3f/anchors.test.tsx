@@ -509,7 +509,8 @@ describe("Anchor", () => {
     expect(button.style.minWidth).toBe("48px");
     expect(button.style.minHeight).toBe("48px");
     expect(button.style.pointerEvents).toBe("auto");
-    expect(button.style.touchAction).toBe("none");
+    // A click-only marker leaves scrolling and pinch to the browser.
+    expect(button.style.touchAction).toBe("manipulation");
     button.click();
     expect(onPress).toHaveBeenCalledTimes(1);
   });
@@ -527,6 +528,8 @@ describe("Anchor", () => {
     const button = container.querySelector("button") as HTMLButtonElement;
     button.dispatchEvent(new Event("pointerdown", { bubbles: true, cancelable: true }));
     expect(seen).toEqual([false]);
+    // A marker that can start a drag takes the touch from the browser.
+    expect(button.style.touchAction).toBe("none");
   });
 
   it("is not a button, and passes no pointers, without a handler", () => {

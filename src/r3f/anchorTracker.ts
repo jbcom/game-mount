@@ -91,8 +91,6 @@ interface Row {
   readonly projection: AnchorProjection | null;
 }
 
-const viewProjection = new Matrix4();
-
 function write(entry: Entry, key: string, value: string, apply: (value: string) => void): void {
   if (entry.written[key] === value) return;
   entry.written[key] = value;
@@ -158,6 +156,8 @@ function place(row: Row, state: AnchorState): void {
 /** A tracker with no anchors and no frame yet. */
 export function createAnchorTracker(): AnchorTracker {
   const entries = new Set<Entry>();
+  // One per tracker, so two trackers never share a matrix whatever order they update in.
+  const viewProjection = new Matrix4();
   let latest: AnchorFrame | null = null;
   let refreshQueued = false;
 
