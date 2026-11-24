@@ -49,7 +49,7 @@ All peers are optional at the package level. Each selected adapter still require
 | Import | Exports | Required peers |
 | --- | --- | --- |
 | `game-mount` | DPR, quality, device, motion, host, phase, resolution ladder and error classification | None |
-| `game-mount/camera` | Bounded ground camera maths: `poseFor`, `dragGround`, `zoomBy`, `rotateBy`, `panByPixels`, `clampState`, `easeToward` | None |
+| `game-mount/camera` | Bounded ground camera maths: `poseFor`, `dragGround`, `zoomBy`, `rotateBy`, `panByPixels`, `clampState`, `easeToward`, and `projectAnchor` (world point to screen pixel and edge indicator) | None |
 | `game-mount/react` | `GameCanvasErrorBoundary` | React 18 or 19 |
 | `game-mount/pixi` | `mountPixi`, `applyFilterResolutionFix` | PixiJS 8 |
 | `game-mount/pixi/react` | `usePixiMount` | PixiJS 8, React 18 or 19 |

@@ -164,6 +164,37 @@ const pose = poseFor(shown, limits, viewport.width / viewport.height);
 limits = { ...limits, bounds: growBounds(limits.bounds, inflateRect({ minX: 64, minZ: 0, maxX: 128, maxZ: 64 }, 8)) };
 ```
 
+### Screen projection
+
+`projectAnchor(point, view, viewport, insets = 0)` is the maths behind HTML anchored to a world
+point (a marker over a thing, a count on a part, an arrow at the screen edge). It attaches to no
+renderer and works with any camera, ground camera or not. `game-mount/r3f`'s `Anchor` family is
+built on it.
+
+| Input | Meaning |
+| --- | --- |
+| `point` | `Vec3`, `[x, y, z]` in world units |
+| `view` | `AnchorView`: `viewProjection` (the projection matrix times the inverse of the camera's world matrix, 16 numbers column-major, as three.js `Matrix4.elements`) and `eye` (the camera's world position). Perspective and orthographic projections both work |
+| `viewport` | `Viewport` in CSS pixels |
+| `insets` | A number for all four sides, or any of `top`, `right`, `bottom`, `left` (`EdgeInsets`): the margins HUD furniture takes |
+
+It returns an `AnchorProjection`:
+
+| Field | Meaning |
+| --- | --- |
+| `x`, `y` | The point's pixel (origin top left, y down). Behind the camera it equals `edge`, since the projected spot means nothing |
+| `distance` | Straight-line distance from the eye to the point, in world units |
+| `inFront` | The point is in front of the camera (clip `w` above zero) |
+| `inside` | In front of the camera and inside the viewport shrunk by `insets`, border included |
+| `edge` | `{ x, y, angle }`: where an indicator goes. The point itself when `inside`; otherwise the spot on the border of the inset rectangle along the ray from that rectangle's centre toward the point. `angle` is that ray's direction, `atan2(dy, dx)` with y down (0 points right, π/2 down) |
+
+A point behind the camera points the way the camera would have to turn to face it, not the mirrored
+way that dividing by a negative `w` would give; one straight behind points down. Insets larger than
+the viewport leave a rectangle with no size, and every indicator sits at its centre. It throws
+`RangeError` for a viewport that is not positive and finite, or an inset that is negative or not
+finite. Where an anchor is under a HUD bar, `inside` is false and the indicator sits on the bar's
+edge, so nothing is lost beneath furniture.
+
 ## React: `game-mount/react`
 
 Requires React. `GameCanvasErrorBoundary` takes `GameCanvasErrorBoundaryProps`:

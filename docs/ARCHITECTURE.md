@@ -28,6 +28,7 @@ src/
     pose.ts           pitchFor, poseFor, screenToGround
     gestures.ts       dragGround, panByPixels, zoomBy, rotateBy
     ease.ts           easeToward
+    anchor.ts         projectAnchor (world point to pixel, off-screen edge position and angle)
   react/              game-mount/react: GameCanvasErrorBoundary (react)
   pixi/
     index.ts          game-mount/pixi: mountPixi, applyFilterResolutionFix (pixi.js)
