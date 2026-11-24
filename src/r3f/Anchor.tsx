@@ -116,7 +116,7 @@ export function Anchor(props: AnchorProps): ReactNode {
       tracker.register({
         root: root.current as HTMLElement,
         marker: marker.current as HTMLElement,
-        glyph: glyph.current as HTMLElement,
+        glyph: () => glyph.current as HTMLElement,
         edge: edge.current as HTMLElement,
         spec(): AnchorSpec {
           const { position, offset, size, edgeRank, edge: indicator } = latest.current;

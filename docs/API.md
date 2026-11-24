@@ -420,6 +420,7 @@ motion should gate it on `detectReduceMotion()` or its own setting. Anchors are 
 above the scene and are not hidden by objects in front of them. An anchor behind the camera points
 the way the camera would turn to face it.
 
+A position with a `NaN` or infinite component counts as no position and hides the anchor.
 `createAnchorTracker()` returns an `AnchorTracker` with `register(target)`, `update(frame)` and
 `refresh()`. `update` is what `AnchorProjector` calls each frame; call it from another loop with an
 `AnchorFrame` (`camera`, `width`, `height`, `insets?`, `maxEdgeIndicators?`) to drive anchors

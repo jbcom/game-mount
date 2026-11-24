@@ -141,11 +141,19 @@ describe("projectAnchor", () => {
     });
 
     it("treats the border itself as inside", () => {
-      // x lands exactly on the right edge: 45 degrees half-width in a 90 degree-tall view.
-      const half = Math.tan(Math.PI / 4) * (VIEWPORT.width / VIEWPORT.height);
-      const projection = projectAnchor([half * 10, 0, -10], view, VIEWPORT);
-      expect(projection.x).toBeCloseTo(400, 6);
-      expect(projection.inside).toBe(projection.x <= 400);
+      // An orthographic view 40 wide puts x = 20 exactly on the right edge, in exact arithmetic.
+      const camera = new OrthographicCamera(-20, 20, 40, -40, 0.1, 100);
+      camera.position.set(0, 0, 10);
+      camera.updateMatrixWorld(true);
+      camera.updateProjectionMatrix();
+      const ortho = viewOf(camera);
+      const on = projectAnchor([20, 0, -3], ortho, VIEWPORT);
+      expect(on.x).toBe(400);
+      expect(on.inside).toBe(true);
+      expect(projectAnchor([20.01, 0, -3], ortho, VIEWPORT).inside).toBe(false);
+      // An inset moves the border: the same point is now past it.
+      expect(projectAnchor([20, 0, -3], ortho, VIEWPORT, { right: 1 }).inside).toBe(false);
+      expect(projectAnchor([19.9, 0, -3], ortho, VIEWPORT, { right: 1 }).inside).toBe(true);
     });
   });
 

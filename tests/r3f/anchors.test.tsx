@@ -6,7 +6,7 @@
 
 import { act, cleanup, render } from "@testing-library/react";
 import { createElement, type ReactNode, useRef } from "react";
-import { PerspectiveCamera } from "three";
+import { Group, PerspectiveCamera } from "three";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Vec3 } from "../../src/camera/index.js";
 import { Anchor } from "../../src/r3f/Anchor.js";
@@ -53,20 +53,22 @@ const frame = (overrides: Partial<AnchorFrame> = {}): AnchorFrame => ({
 
 interface Parts extends AnchorTarget {
   states: string[];
+  /** The node `glyph()` currently returns; a test can swap it as React does. */
+  glyphNode: HTMLElement;
 }
 
 function parts(): Parts {
   const root = document.createElement("div");
   const marker = document.createElement("div");
-  const glyph = document.createElement("div");
   const edge = document.createElement("div");
   marker.hidden = true;
   edge.hidden = true;
   const states: string[] = [];
-  return {
+  const target: Parts = {
     root,
     marker,
-    glyph,
+    glyph: () => target.glyphNode,
+    glyphNode: document.createElement("div"),
     edge,
     states,
     spec: () => {
@@ -74,6 +76,7 @@ function parts(): Parts {
     },
     notify: (state) => states.push(state),
   };
+  return target;
 }
 
 function register(
@@ -126,8 +129,8 @@ describe("the tracker", () => {
     const target = register(tracker, [0, 0, -10], { offset: [4, -24], size: 30 });
     tracker.update(frame());
     expect(target.marker.style.transform).toBe("translate3d(204px,376px,0) translate(-50%,-50%)");
-    expect(target.glyph.style.width).toBe("30px");
-    expect(target.glyph.style.height).toBe("30px");
+    expect(target.glyphNode.style.width).toBe("30px");
+    expect(target.glyphNode.style.height).toBe("30px");
     expect(target.root.style.getPropertyValue("--anchor-size")).toBe("30px");
   });
 
@@ -137,8 +140,8 @@ describe("the tracker", () => {
     const near = register(tracker, [0, 0, -10], { size });
     const far = register(tracker, [0, 0, -30], { size });
     tracker.update(frame());
-    expect(near.glyph.style.width).toBe("30px");
-    expect(far.glyph.style.width).toBe("10px");
+    expect(near.glyphNode.style.width).toBe("30px");
+    expect(far.glyphNode.style.width).toBe("10px");
     expect(size).toHaveBeenCalledWith(10);
     expect(size).toHaveBeenCalledWith(30);
   });
@@ -177,7 +180,7 @@ describe("the tracker", () => {
     const off = register(tracker, [40, 0, -10]);
     const none = register(tracker, () => null, { edge: true });
     tracker.update(frame());
-    expect(off.root.dataset.state).toBeUndefined();
+    expect(off.root.dataset.state).toBe("hidden");
     expect(off.marker.hidden).toBe(true);
     expect(off.edge.hidden).toBe(true);
     expect(none.marker.hidden).toBe(true);
@@ -236,13 +239,35 @@ describe("the tracker", () => {
   it("does nothing for a canvas with no area or no anchors", () => {
     const tracker = createAnchorTracker();
     const view = camera();
-    const spy = vi.spyOn(view, "updateMatrixWorld");
+    const spy = vi.spyOn(view, "updateWorldMatrix");
     tracker.update(frame({ camera: view }));
     expect(spy).not.toHaveBeenCalled();
     const target = register(tracker, [0, 0, -10]);
     tracker.update(frame({ camera: view, width: 0 }));
     tracker.update(frame({ camera: view, height: 0 }));
     expect(spy).not.toHaveBeenCalled();
+    expect(target.marker.hidden).toBe(true);
+  });
+
+  it("resets an element that is registered again to hidden, so the DOM matches the new entry", () => {
+    const first = createAnchorTracker();
+    const target = register(first, [0, 0, -10]);
+    first.update(frame());
+    expect(target.marker.hidden).toBe(false);
+    // The same element handed to another tracker whose anchor is not in view must not stay shown.
+    const second = createAnchorTracker();
+    target.spec = () => ({
+      position: [0, 0, 10],
+      offset: [0, 0],
+      size: undefined,
+      edgeRank: 0,
+      edge: false,
+    });
+    second.register(target);
+    expect(target.marker.hidden).toBe(true);
+    expect(target.edge.hidden).toBe(true);
+    expect(target.root.dataset.state).toBe("hidden");
+    second.update(frame());
     expect(target.marker.hidden).toBe(true);
   });
 
@@ -271,10 +296,46 @@ describe("the tracker", () => {
     tracker.update(frame());
     // Overwrite the DOM behind the tracker's back: an unchanged value must not be written again.
     target.marker.style.transform = "translate(1px,2px)";
-    target.glyph.style.width = "1px";
+    target.glyphNode.style.width = "1px";
     tracker.update(frame());
     expect(target.marker.style.transform).toBe("translate(1px,2px)");
-    expect(target.glyph.style.width).toBe("1px");
+    expect(target.glyphNode.style.width).toBe("1px");
+  });
+
+  it("sizes the new glyph node when React replaces it, even at an unchanged size", () => {
+    const tracker = createAnchorTracker();
+    const target = register(tracker, [0, 0, -10], { size: 24 });
+    tracker.update(frame());
+    expect(target.glyphNode.style.width).toBe("24px");
+    target.glyphNode = document.createElement("div");
+    tracker.update(frame());
+    expect(target.glyphNode.style.width).toBe("24px");
+  });
+
+  it("treats a position with a NaN or infinite component as none", () => {
+    const tracker = createAnchorTracker();
+    const nan = register(tracker, [Number.NaN, 0, -10], { edge: true });
+    const infinite = register(tracker, [Number.POSITIVE_INFINITY, 0, -10], { edge: true });
+    tracker.update(frame());
+    for (const target of [nan, infinite]) {
+      expect(target.states).toEqual([]);
+      expect(target.marker.hidden).toBe(true);
+      expect(target.edge.hidden).toBe(true);
+    }
+  });
+
+  it("sees a camera inside a group that moved this frame", () => {
+    const tracker = createAnchorTracker();
+    const target = register(tracker, [0, 0, -10]);
+    const group = new Group();
+    const view = camera();
+    group.add(view);
+    group.updateMatrixWorld(true);
+    tracker.update(frame({ camera: view }));
+    expect(target.root.style.getPropertyValue("--anchor-distance")).toBe("10");
+    group.position.set(0, 0, 10);
+    tracker.update(frame({ camera: view }));
+    expect(target.root.style.getPropertyValue("--anchor-distance")).toBe("20");
   });
 
   it("re-applies the latest frame on refresh, coalescing calls into one", async () => {
@@ -404,6 +465,33 @@ describe("Anchor", () => {
       await Promise.resolve();
     });
     expect(marker.style.transform).not.toBe(before);
+  });
+
+  it("keeps the glyph sized when the marker becomes a button while in view", async () => {
+    const { container, rerender } = render(
+      <Scene>
+        <Anchor position={[0, 0, -10]} size={20} />
+      </Scene>
+    );
+    const tracker = sceneTracker.current as ReturnType<typeof createAnchorTracker>;
+    act(() => tracker.update(frame()));
+    const glyphWidth = () =>
+      (
+        [...container.querySelectorAll("[data-anchor-part=marker] [style*=place-items]")].at(
+          -1
+        ) as HTMLElement
+      ).style.width;
+    expect(glyphWidth()).toBe("20px");
+    rerender(
+      <Scene>
+        <Anchor position={[0, 0, -10]} size={20} onPress={() => undefined} />
+      </Scene>
+    );
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(container.querySelector("button")).not.toBeNull();
+    expect(glyphWidth()).toBe("20px");
   });
 
   it("makes the marker a labelled button with a press target at least minTarget on each side", () => {

@@ -103,11 +103,12 @@ async function mount(): Promise<Harness> {
   return harness;
 }
 
-function look(harness: Harness, from: Vec3, at: Vec3): void {
+/** Points the camera. A rig leaves the matrices to the renderer, so `settle` is false for one. */
+function look(harness: Harness, from: Vec3, at: Vec3, settle = true): void {
   const { camera } = harness.state;
   camera.position.set(...from);
   camera.lookAt(...at);
-  camera.updateMatrixWorld(true);
+  if (settle) camera.updateMatrixWorld(true);
 }
 
 /** Where three says a world point lands in the host box (CSS px, y down), and whether in front. */
@@ -224,7 +225,7 @@ test("a marker has no frame lag: after each frame it matches that frame's camera
   const readings: Array<{ got: { x: number; y: number }; want: { x: number; y: number } }> = [];
   // A rig moves the camera at priority -1 every frame, before anchors are projected at 0.
   harness.everyFrame((index) => {
-    look(harness, [index * 0.4, 0, index * 0.2], [0, 0, -20]);
+    look(harness, [index * 0.4, 0, index * 0.2], [0, 0, -20], false);
   });
   for (let index = 0; index < 8; index++) {
     await frame();

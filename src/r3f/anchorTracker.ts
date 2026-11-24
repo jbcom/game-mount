@@ -36,7 +36,7 @@ export interface AnchorTarget {
   /** The marker part, moved to the projected point and shown while the anchor is inside. */
   readonly marker: HTMLElement;
   /** The box inside the marker that `size` sets. */
-  readonly glyph: HTMLElement;
+  glyph(): HTMLElement;
   /** The edge part, moved to the border position and shown while the anchor is at the edge. */
   readonly edge: HTMLElement;
   spec(): AnchorSpec;
@@ -79,6 +79,8 @@ export interface AnchorTracker {
 interface Entry {
   readonly target: AnchorTarget;
   state: AnchorState;
+  /** The glyph node the last size was written to. */
+  glyph: HTMLElement | null;
   /** The last string written for each property, so an unchanged value costs no DOM write. */
   readonly written: Record<string, string>;
 }
@@ -107,7 +109,7 @@ function translate(x: number, y: number): string {
 
 function place(row: Row, state: AnchorState): void {
   const { entry, spec, projection } = row;
-  const { root, marker, glyph, edge } = entry.target;
+  const { root, marker, edge } = entry.target;
   if (state !== entry.state) {
     entry.state = state;
     root.dataset.state = state;
@@ -121,6 +123,13 @@ function place(row: Row, state: AnchorState): void {
   );
   if (state === "inside") {
     const size = typeof spec.size === "function" ? spec.size(projection.distance) : spec.size;
+    // The glyph node is replaced when the marker becomes or stops being a button; a size written
+    // to the old node is gone, so forget it.
+    const glyph = entry.target.glyph();
+    if (entry.glyph !== glyph) {
+      entry.glyph = glyph;
+      delete entry.written.size;
+    }
     if (size !== undefined) {
       write(entry, "size", px(size), (value) => {
         glyph.style.width = value;
@@ -156,9 +165,10 @@ export function createAnchorTracker(): AnchorTracker {
     latest = frame;
     const { camera, width, height, insets, maxEdgeIndicators = Number.POSITIVE_INFINITY } = frame;
     if (entries.size === 0 || !(width > 0 && height > 0)) return;
-    // The rig that moves the camera runs earlier this frame; the renderer would refresh the inverse
-    // only when it draws, a frame late.
-    camera.updateMatrixWorld();
+    // The rig that moves the camera (or a group it sits in) runs earlier this frame; the renderer
+    // would refresh the matrices only when it draws, a frame late. This brings the parents, the
+    // camera's world matrix and its inverse up to date.
+    camera.updateWorldMatrix(true, false);
     viewProjection.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
     const world = camera.matrixWorld.elements;
     const view = {
@@ -171,10 +181,12 @@ export function createAnchorTracker(): AnchorTracker {
     for (const entry of entries) {
       const spec = entry.target.spec();
       const point = typeof spec.position === "function" ? spec.position() : spec.position;
+      // A position with a NaN or infinite component (a thing that has none yet) is no position.
+      const usable = point?.every(Number.isFinite);
       rows.push({
         entry,
         spec,
-        projection: point ? projectAnchor(point, view, viewport, insets) : null,
+        projection: point && usable ? projectAnchor(point, view, viewport, insets) : null,
       });
     }
 
@@ -201,7 +213,12 @@ export function createAnchorTracker(): AnchorTracker {
 
   return {
     register(target) {
-      const entry: Entry = { target, state: "hidden", written: {} };
+      const entry: Entry = { target, state: "hidden", glyph: null, written: {} };
+      // An element that outlived an earlier registration (a replayed effect, a swapped tracker)
+      // may still show its last state; the entry starts from hidden, so make the DOM agree.
+      target.root.dataset.state = "hidden";
+      target.marker.hidden = true;
+      target.edge.hidden = true;
       entries.add(entry);
       return () => {
         entries.delete(entry);
