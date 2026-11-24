@@ -68,6 +68,36 @@ const SCENARIOS = [
     `,
   },
   {
+    name: "camera",
+    peers: [],
+    entries: [
+      {
+        specifier: `${NAME}/camera`,
+        probe: `
+          const lShape = [
+            { minX: 0, minZ: 0, maxX: 10, maxZ: 5 },
+            { minX: 0, minZ: 0, maxX: 5, maxZ: 10 },
+          ];
+          const notch = m.clampToBounds(lShape, 8, 6);
+          if (notch.x !== 8 || notch.z !== 5) throw new Error("clampToBounds " + JSON.stringify(notch));
+          if (m.growBounds(lShape, m.inflateRect({ minX: 0, minZ: 0, maxX: 10, maxZ: 10 }, 1)).length !== 1) throw new Error("growBounds");
+          const limits = { bounds: lShape, minSpan: 4, maxSpan: 40, pitch: 0.9, fov: 0.7 };
+          const state = { x: 2, z: 2, span: 8, yaw: 0 };
+          const pose = m.poseFor(state, limits, 390 / 844);
+          if (pose.position[1] <= 0 || pose.target[0] !== 2 || pose.target[2] !== 2) throw new Error("poseFor " + JSON.stringify(pose));
+          const viewport = { width: 390, height: 844 };
+          const dragged = m.dragGround(state, limits, viewport, { x: 200, y: 500 }, { x: 180, y: 520 });
+          if (!(dragged.x > state.x) || !(dragged.z < state.z + 0.001)) throw new Error("dragGround " + JSON.stringify(dragged));
+          if (m.zoomBy(state, limits, viewport, 100).span !== 40) throw new Error("zoomBy");
+          if (Math.abs(m.rotateBy(state, limits, viewport, 7).yaw - (7 - 2 * Math.PI)) > 1e-12) throw new Error("rotateBy");
+          if (m.clampState({ ...state, x: 99 }, limits).x !== 10) throw new Error("clampState");
+          if (Math.abs(m.easeToward(state, { ...state, x: 6 }, 1e6).x - 6) > 1e-9) throw new Error("easeToward");
+          if (m.DEFAULT_SMOOTHING !== 0.12) throw new Error("DEFAULT_SMOOTHING");
+        `,
+      },
+    ],
+  },
+  {
     name: "react",
     peers: ["react"],
     entries: [

@@ -57,6 +57,113 @@ Provide valid finite samples and a current ratio within your intended bounds. Th
 
 `AssetErrorReason` adds a `message: string` to that classification. Detection uses the first absolute or root-relative URL and its extension; it is best-effort, not a security or network-status classifier.
 
+## Camera: `game-mount/camera`
+
+A bounded ground camera as pure maths, with no peers: it imports no renderer and no input library.
+It suits a tilted view over a bounded piece of land. Feed it pixel deltas from any pointer source
+and apply the pose to any renderer's camera. For react-three-fiber, `GroundCameraRig` in
+`game-mount/r3f` does that.
+
+World units are whatever your scene uses (this page says metres). The ground is the plane y = 0,
+x points east and z south. A camera at yaw 0 looks toward −z; yaw grows clockwise seen from above.
+
+### State and limits
+
+`GroundCameraState` is `{ x, z, span, yaw }`: the ground point the camera looks at, the span in
+world units visible across the short axis of the screen at that point, and the yaw in radians.
+Zoom is the span, so a phone in portrait and a desktop monitor show the same amount of ground at
+the same span.
+
+`GroundCameraLimits` holds everything fixed about the view:
+
+| Field | Meaning |
+| --- | --- |
+| `bounds` | `readonly Rect[]`: the target may be anywhere in the union of these rectangles. At least one |
+| `minSpan`, `maxSpan` | Closest and farthest zoom. `0 < minSpan <= maxSpan`, both finite |
+| `pitch` | Radians below horizontal, strictly between 0 and π/2. A number is fixed; `{ atMinSpan, atMaxSpan }` varies with zoom along a smoothstep over the geometric span range |
+| `fov` | Vertical field of view in radians, strictly between 0 and π |
+| `terrain?` | `{ height(x, z), clearance }`: the target sits on the ground there and the eye keeps `clearance` above the ground beneath it |
+
+A `Rect` is `{ minX, minZ, maxX, maxZ }`. Limits are plain data: to open more ground (a base area
+plus regions added later), pass a new limits object whose `bounds` came from `growBounds`.
+
+### Bounds
+
+| Export | Contract |
+| --- | --- |
+| `clampToBounds(bounds, x, z)` | The nearest point of the union. A point inside any rectangle is returned as is; otherwise the nearest per-rectangle projection wins, so a point pushed past an edge keeps its position along it (a drag slides). A point in the notch of an L-shaped union lands on the nearer inner edge. Equal distances go to the earlier rectangle. Throws `RangeError` for an empty union |
+| `inflateRect(rect, margin)` | The rectangle grown by `margin` on every side |
+| `growBounds(bounds, ...rects)` | A new union with the rectangles added; covered ones are dropped. The input is untouched |
+| `clampState(state, limits)` | The state with its target in the bounds and its span between the limits. Yaw is untouched. Returns the same object when nothing changes. Throws `RangeError` for unusable span limits |
+
+### Pose
+
+`poseFor(state, limits, aspect)` returns `{ position, target, fov, pitch, distance }` in world
+units for a screen aspect (width over height). It clamps the state first. Apply `position`,
+`target` and `fov` to your camera; `fov` is in radians. Throws `RangeError` for a non-positive or
+non-finite aspect, a bad `fov` or `pitch`, or unusable span limits.
+
+The span is measured at the target. Across the screen's width it is exact. Down its height the
+tilt stretches the ground by 1 / sin(pitch), so the span is the target's local scale there. The
+camera frames the smaller of the two, which is the short axis of the visible ground. That choice
+is continuous in the aspect, so a foldable that unfolds to a near-square screen does not jump.
+With a terrain, the eye is lifted if it would sit below the clearance; the span is then measured
+from the unlifted pose.
+
+`pitchFor(limits, span)` is the pitch `poseFor` uses at a span.
+
+### Gestures
+
+Every gesture takes `(state, limits, viewport, ...)`, with the viewport in CSS pixels, and returns
+a new state clamped to the limits. None of them reads a device or event.
+
+| Export | Behavior |
+| --- | --- |
+| `screenToGround(state, limits, viewport, x, y)` | The ground point seen through a pixel, or `null` at or above the horizon |
+| `dragGround(state, limits, viewport, from, to)` | Moves the ground so the point under `from` ends under `to`, at any tilt and yaw. Against a boundary it slides. A pixel above the horizon leaves the state unchanged |
+| `panByPixels(state, limits, viewport, dx, dy)` | A drag by a finger at the screen centre: the ground follows, so a positive `dx` moves the camera toward the left of the screen |
+| `zoomBy(state, limits, viewport, factor, anchor?)` | Multiplies the span by `factor` (above 1 zooms out), held between the limits. With an `anchor` pixel the ground under it stays under it. Throws `RangeError` for a factor that is not positive and finite |
+| `rotateBy(state, limits, viewport, deltaYaw, anchor?)` | Turns by `deltaYaw`, keeping yaw in (−π, π]. With an `anchor` pixel the ground under it stays under it |
+
+Anchoring and dragging cast their rays from the pose `poseFor` returns. They are exact on flat
+ground and treat the ground as flat at the target's height, so over steep terrain they are
+approximate.
+
+### Easing
+
+`easeToward(current, goal, deltaSeconds, smoothing = DEFAULT_SMOOTHING)` moves `current` toward
+`goal` by `1 - exp(-deltaSeconds / smoothing)` of the gap, so the motion does not depend on the
+frame rate (two half-steps equal one whole step) and never overshoots. The target eases linearly,
+the span geometrically and the yaw along the shorter arc. `smoothing` is a time constant in
+seconds (`DEFAULT_SMOOTHING` is 0.12); zero or less returns `goal`. A goal that moves, such as a
+followed target, needs `clampState` on the eased result, since a straight line between two
+allowed points can cross a notch of the union.
+
+```ts
+import { clampState, dragGround, easeToward, growBounds, inflateRect, poseFor } from "game-mount/camera";
+
+let limits = {
+  bounds: [inflateRect({ minX: 0, minZ: 0, maxX: 64, maxZ: 64 }, 8)],
+  minSpan: 24,
+  maxSpan: 160,
+  pitch: { atMinSpan: 0.62, atMaxSpan: 1.1 },
+  fov: 0.7,
+};
+let goal = { x: 32, z: 32, span: 60, yaw: 0 };
+let shown = goal;
+const viewport = { width: 390, height: 844 };
+
+// From any pointer source: the ground under the finger stays under it.
+goal = dragGround(goal, limits, viewport, { x: 200, y: 500 }, { x: 180, y: 520 });
+
+// Each frame: ease, clamp, pose.
+shown = clampState(easeToward(shown, goal, 1 / 60), limits);
+const pose = poseFor(shown, limits, viewport.width / viewport.height);
+
+// Open another region later.
+limits = { ...limits, bounds: growBounds(limits.bounds, inflateRect({ minX: 64, minZ: 0, maxX: 128, maxZ: 64 }, 8)) };
+```
+
 ## React: `game-mount/react`
 
 Requires React. `GameCanvasErrorBoundary` takes `GameCanvasErrorBoundaryProps`:

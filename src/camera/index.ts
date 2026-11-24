@@ -1,0 +1,22 @@
+/**
+ * game-mount/camera: a bounded ground camera as pure maths. It imports no renderer and no input
+ * library: a tilted camera over a piece of land with drag-pan that keeps the ground under the
+ * finger, anchored zoom, twist rotation, bounds that are a union of rectangles, and eased motion.
+ * Feed it pixel deltas from any pointer source and apply `poseFor` to any renderer's camera.
+ */
+export { clampToBounds, growBounds, inflateRect } from "./bounds.js";
+export { DEFAULT_SMOOTHING, easeToward } from "./ease.js";
+export { dragGround, panByPixels, rotateBy, zoomBy } from "./gestures.js";
+export { pitchFor, poseFor, screenToGround } from "./pose.js";
+export { clampState } from "./state.js";
+export type {
+  GroundCameraLimits,
+  GroundCameraPose,
+  GroundCameraState,
+  GroundPoint,
+  GroundTerrain,
+  PitchRange,
+  Rect,
+  ScreenPoint,
+  Viewport,
+} from "./types.js";

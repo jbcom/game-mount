@@ -21,6 +21,13 @@ src/
     pixelRatioLadder.ts  stepPixelRatio
     assetError.ts     classifyAssetError
   styles.css          game-mount/styles.css, the host contract as CSS
+  camera/             game-mount/camera: the bounded ground camera as pure maths, no dependencies
+    types.ts          state, limits, pose and geometry types
+    bounds.ts         inflateRect, growBounds, clampToBounds (a union of rectangles)
+    state.ts          clampState
+    pose.ts           pitchFor, poseFor, screenToGround
+    gestures.ts       dragGround, panByPixels, zoomBy, rotateBy
+    ease.ts           easeToward
   react/              game-mount/react: GameCanvasErrorBoundary (react)
   pixi/
     index.ts          game-mount/pixi: mountPixi, applyFilterResolutionFix (pixi.js)
@@ -43,6 +50,9 @@ core  <-  react  <-  r3f
   |-- pixi (mount.ts, shared.ts)  <-  pixi/react, pixi/pixi-react
   |-- babylon  <-  babylon/havok (imports nothing from babylon/index)
 ```
+
+`camera` stands beside the core, not under an adapter: it imports nothing, not even the core, so
+any renderer or input path can use it.
 
 The core imports nothing. Adapters import the core and their own renderer, never another adapter's
 renderer. Every peer is optional, and each entry point's runtime import graph reaches only the
@@ -100,7 +110,7 @@ Breaking one of these reintroduces the bug it exists to prevent.
 
 | Layer | Where | What it proves |
 | --- | --- | --- |
-| Unit (jsdom) | `tests/core`, `tests/react`, `tests/pixi`, `tests/r3f`, `tests/babylon` | Every branch of `src`, at 100% coverage; Babylon runs for real on `NullEngine` |
+| Unit (jsdom) | `tests/core`, `tests/camera`, `tests/react`, `tests/pixi`, `tests/r3f`, `tests/babylon` | Every branch of `src`, at 100% coverage; Babylon runs for real on `NullEngine` |
 | Contract | `tests/repository-contract.test.ts` | Exports map, optional peers, peer isolation, CI installs Chromium |
 | Real WebGL | `tests/browser/*.test.tsx` | `@pixi/react` StrictMode plus R3F prequeued frames, async configure/disposal and retirement in Chromium |
 | Package | `publint`, `attw` | The exports map and the ESM/CommonJS type layout |

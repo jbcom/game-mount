@@ -26,6 +26,7 @@ const manifest = JSON.parse(readFileSync(path.join(root, "package.json"), "utf8"
 /** The peers each entry point may reach at runtime. This is the public contract. */
 const ENTRY_PEERS: Record<string, readonly string[]> = {
   ".": [],
+  "./camera": [],
   "./react": ["react"],
   "./pixi": ["pixi.js"],
   "./pixi/react": ["pixi.js", "react"],

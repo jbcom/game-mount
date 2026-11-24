@@ -279,3 +279,28 @@ settles or third-party renderer cleanup fails.
 The browser gate is silent and headed by default, including Linux Xvfb CI. A pool's explicit
 HEAVY_RENDER_HEADLESS override is a diagnostic route; it is not headed acceptance evidence. The
 gate records Chromium's actual CDP command line and checks mute and headed flags.
+
+## The ground camera is its own pure entry, driven by deltas
+
+**Decision.** The bounded ground camera ships as `game-mount/camera`: state, limits and gestures as
+pure functions with no peers, and `game-mount/r3f` adds a thin rig that applies the pose. Neither
+reads a device, an event or an input library; gestures take pixel positions and deltas.
+
+**Why.** Mobile-first games over a bounded piece of land each hand-rolled the same camera: a tilted
+view, a drag that keeps the ground under the finger, anchored zoom, bounds and eased follow. The
+maths has nothing to do with a renderer, so it is its own entry point rather than part of the r3f
+adapter: a Pixi or Babylon scene can use it too, and it tests without a renderer. It is not part of
+the root core either, since the core is rendering policy and every consumer of the root would carry
+it. Taking deltas instead of events keeps one source of truth for input in whichever library a game
+already uses.
+
+**Shape.** Zoom is the span of ground visible across the short axis, not a normalised 0 to 1, so
+limits are in world units and a phone and a monitor frame the same land. The bounds are a union of
+rectangles, so ground can open up over time without a shape the camera cannot represent; clamping
+takes the nearest point of the union, which slides along an edge and settles into the notch of an
+L. The span is measured on the smaller of the screen's two ground extents, which keeps the framing
+continuous across a square aspect. Dragging and anchoring cast rays from the pose that is drawn,
+exact on flat ground.
+
+**Cost.** Over steep terrain the drag is approximate, since it treats the ground as flat at the
+target's height. The rig needs a continuously running frame loop to ease.
