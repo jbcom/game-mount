@@ -11,7 +11,8 @@ up to is in [Architecture](./ARCHITECTURE/).
 **Decision.** game-mount is one npm package. The renderer-neutral core is the root export; each
 renderer is a subpath (`game-mount/pixi`, `game-mount/pixi/react`, `game-mount/pixi/pixi-react`,
 `game-mount/r3f`, `game-mount/babylon`, `game-mount/babylon/havok`), with renderer-neutral React
-pieces at `game-mount/react`. Every peer dependency is optional.
+pieces at `game-mount/react` and the peer-free ground camera maths at `game-mount/camera`. Every
+peer dependency is optional.
 
 **Why.** It began as three packages, one per renderer, that had each grown its own copy of the same
 policy: a DPR cap, reduced-motion detection, mobile detection, a parent-sized host. Three copies
