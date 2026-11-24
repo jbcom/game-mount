@@ -34,8 +34,8 @@ src/
     react.ts          game-mount/pixi/react: usePixiMount (pixi.js, react)
     pixi-react.tsx    game-mount/pixi/pixi-react: PixiReactMount (pixi.js, react, @pixi/react)
     shared.ts         measuring, resize sizing and render options both Pixi paths use
-  r3f/                game-mount/r3f: GameCanvas, ManagedGameCanvas, createR3FMount, AdaptiveResolution
-                      (react, three, @react-three/fiber)
+  r3f/                game-mount/r3f: GameCanvas, ManagedGameCanvas, createR3FMount, AdaptiveResolution,
+                      GroundCameraRig (react, three, @react-three/fiber)
   babylon/
     index.ts          game-mount/babylon: babylonEngineOptions, SceneRoot, useBeforeRender
                       (react, @babylonjs/core, reactylon)
@@ -52,7 +52,8 @@ core  <-  react  <-  r3f
 ```
 
 `camera` stands beside the core, not under an adapter: it imports nothing, not even the core, so
-any renderer or input path can use it.
+any renderer or input path can use it. `r3f` imports it for `GroundCameraRig`, which is the only
+renderer-specific part of the ground camera.
 
 The core imports nothing. Adapters import the core and their own renderer, never another adapter's
 renderer. Every peer is optional, and each entry point's runtime import graph reaches only the

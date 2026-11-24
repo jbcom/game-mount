@@ -165,6 +165,7 @@ const SCENARIOS = [
           if (typeof m.createR3FMount !== "function" || typeof m.ManagedGameCanvas !== "function") throw new Error("retirement API");
           if (typeof m.GameCanvas !== "function") throw new Error("GameCanvas");
           if (typeof m.AdaptiveResolution !== "function") throw new Error("AdaptiveResolution");
+          if (typeof m.GroundCameraRig !== "function") throw new Error("GroundCameraRig");
           const { createElement } = await load("react");
           const { renderToStaticMarkup } = await load("react-dom/server");
           const html = renderToStaticMarkup(createElement(m.GameCanvas, { active: false }, null));

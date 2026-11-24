@@ -272,6 +272,62 @@ renderer release loses its WebGL context. No private R3F state is read or writte
 
 `onUpdate` receives `AdaptiveResolutionInfo`: `fps`, `pixelRatio`, and optional peak `drawCalls` and `triangles`. A positive priority disables r3f automatic rendering; use it only when another component owns rendering manually. Prefer ESM because Three's CommonJS build emits a deprecation warning.
 
+### Ground camera rig
+
+`GroundCameraRig` applies the ground camera of `game-mount/camera` to the canvas's perspective
+camera. It renders nothing, reads no input and depends on no input library: write the goal from
+whichever source the game uses. Props (`GroundCameraRigProps`):
+
+| Prop | Behavior |
+| --- | --- |
+| `limits` | `GroundCameraLimits`. Changing it re-clamps on the next frame, so ground opened later is usable at once |
+| `stateRef` | `{ current: GroundCameraState }`, the goal. Input handlers write it; each frame the rig clamps it to `limits` (and to `follow`) and writes it back, so it never holds an unreachable position |
+| `follow?` | A `{ x, z }` point, or a getter called every frame for a moving target (return `null` for none). While it gives a point it overrides the goal's centre; pass `null` or leave it out to hand control back |
+| `smoothing?` | Easing time constant in seconds, default `DEFAULT_SMOOTHING`; 0 snaps |
+| `priority?` | `useFrame` priority, default -1: the camera moves before priority-0 readers, without taking over rendering |
+
+The first frame starts on the goal. Later frames ease the shown state toward it with `easeToward`
+(exponential, frame-rate independent, yaw along the shorter arc), clamp it, then set the camera's
+position, look-at target and field of view, calling `updateProjectionMatrix` only when the field of
+view changes. A canvas with no size yet, or a camera that is not a `PerspectiveCamera`, is left
+alone. It assumes r3f's continuous frame loop; with `frameloop="demand"` call `invalidate()`.
+
+```tsx
+import { type GroundCameraLimits, type GroundCameraState, zoomBy } from "game-mount/camera";
+import { GameCanvas, GroundCameraRig } from "game-mount/r3f";
+import { useRef, type WheelEvent } from "react";
+
+const limits: GroundCameraLimits = {
+  bounds: [{ minX: 0, minZ: 0, maxX: 64, maxZ: 64 }],
+  minSpan: 24,
+  maxSpan: 160,
+  pitch: { atMinSpan: 0.62, atMaxSpan: 1.1 },
+  fov: 0.7,
+};
+
+export function GroundView() {
+  const goal = useRef<GroundCameraState>({ x: 32, z: 32, span: 60, yaw: 0 });
+  // Any input source writes the goal; here the wheel zooms toward the pointer.
+  const onWheel = (event: WheelEvent<HTMLElement>) => {
+    const box = event.currentTarget.getBoundingClientRect();
+    goal.current = zoomBy(
+      goal.current,
+      limits,
+      { width: box.width, height: box.height },
+      1.0015 ** event.deltaY,
+      { x: event.clientX - box.left, y: event.clientY - box.top }
+    );
+  };
+  return (
+    <main style={{ height: 480, display: "flex" }} onWheel={onWheel}>
+      <GameCanvas active>
+        <GroundCameraRig limits={limits} stateRef={goal} />
+      </GameCanvas>
+    </main>
+  );
+}
+```
+
 ## Babylon: `game-mount/babylon`
 
 Requires React, Babylon core and Reactylon.
