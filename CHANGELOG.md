@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.4.0](https://github.com/jbcom/game-mount/compare/v0.3.0...v0.4.0) (2026-11-24)
+
+
+### Features
+
+* **camera:** add projectAnchor to put a world point on screen with an edge indicator ([2c837dd](https://github.com/jbcom/game-mount/commit/2c837ddb0532c22ce8a22218b14de3fe7136a75f))
+* **r3f:** add world-anchored markers and labels at a constant screen size ([f2cff25](https://github.com/jbcom/game-mount/commit/f2cff25eaa0741e8995d55309acdf8154369b336)), closes [#27](https://github.com/jbcom/game-mount/issues/27)
+* **r3f:** world-anchored markers and labels at a constant screen size ([51bb5bb](https://github.com/jbcom/game-mount/commit/51bb5bbd563e1ed444f97d6e24525195722d2dc2))
+
+
+### Bug Fixes
+
+* **r3f:** give each tracker its own matrix and leave touch scrolling to click-only markers ([9ec77c4](https://github.com/jbcom/game-mount/commit/9ec77c47f007d23ca777a2db1e4ca39d9cd80a88))
+* **r3f:** keep anchors correct across glyph swaps, grouped cameras and bad positions ([61ba145](https://github.com/jbcom/game-mount/commit/61ba14521a1ccef30034f55e4aa588bef23c68cd))
+
 ## [0.3.0](https://github.com/jbcom/game-mount/compare/v0.2.0...v0.3.0) (2026-11-24)
 
 
