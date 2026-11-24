@@ -1,5 +1,5 @@
 export function clamp(value: number, min: number, max: number): number {
-  return value < min ? min : value > max ? max : value;
+  return value < min ? min : Math.min(value, max);
 }
 
 /** Wraps an angle into (−π, π]. */

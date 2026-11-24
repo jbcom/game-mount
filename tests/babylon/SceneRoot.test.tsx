@@ -45,6 +45,24 @@ function meshNames(scene: Scene): string[] {
   return scene.meshes.map((mesh) => mesh.name).sort();
 }
 
+function Both({ phase }: { phase: string }) {
+  return (
+    <>
+      <SceneRoot activeKey={phase} matchKey="a">
+        {(root) => <Crate root={root} name="a-mesh" />}
+      </SceneRoot>
+      <SceneRoot activeKey="always" matchKey="always">
+        {(root) => <Crate root={root} name="hud-anchor" />}
+      </SceneRoot>
+    </>
+  );
+}
+
+function Ticker({ onTick }: { onTick: (delta: number, scene: Scene) => void }) {
+  useBeforeRender(onTick);
+  return null;
+}
+
 describe("SceneRoot", () => {
   it("creates a root only while the phase matches, and disposes its subtree when it ends", () => {
     const scene = sceneState.current as Scene;
@@ -93,18 +111,6 @@ describe("SceneRoot", () => {
 
   it("leaves sibling roots alive and leaks nothing over repeated cycles", () => {
     const scene = sceneState.current as Scene;
-    function Both({ phase }: { phase: string }) {
-      return (
-        <>
-          <SceneRoot activeKey={phase} matchKey="a">
-            {(root) => <Crate root={root} name="a-mesh" />}
-          </SceneRoot>
-          <SceneRoot activeKey="always" matchKey="always">
-            {(root) => <Crate root={root} name="hud-anchor" />}
-          </SceneRoot>
-        </>
-      );
-    }
     const view = render(<Both phase="a" />);
     for (let i = 0; i < 5; i++) {
       view.rerender(<Both phase="b" />);
@@ -127,11 +133,6 @@ describe("SceneRoot", () => {
 });
 
 describe("useBeforeRender", () => {
-  function Ticker({ onTick }: { onTick: (delta: number, scene: Scene) => void }) {
-    useBeforeRender(onTick);
-    return null;
-  }
-
   it("runs the latest callback before each render with a clamped delta, and unsubscribes", async () => {
     const scene = sceneState.current as Scene;
     new FreeCamera("camera", Vector3.Zero(), scene);

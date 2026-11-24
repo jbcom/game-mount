@@ -15,6 +15,10 @@ function Boom({ message }: { message: string }): null {
   throw new Error(message);
 }
 
+function ThrowString(): null {
+  throw "plain string";
+}
+
 describe("GameCanvasErrorBoundary", () => {
   it("renders children when there is no error", () => {
     render(
@@ -74,9 +78,6 @@ describe("GameCanvasErrorBoundary", () => {
   it("passes a non-Error throw through as its string", () => {
     const onError = vi.fn<(r: AssetErrorReason) => void>();
     const errSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-    function ThrowString(): null {
-      throw "plain string";
-    }
     render(
       <GameCanvasErrorBoundary onError={onError}>
         <ThrowString />
